@@ -10,6 +10,9 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		virtual F CreateRandom(Random& random) = 0;
 	};
 
+	/// <summary> 
+	/// Feature factory, used for random generation of a FeatureResponseFunction object
+	/// </summary>
 	template<typename F>
 	class FeatureFactory : public IFeatureResponseFactory<F>
 	{

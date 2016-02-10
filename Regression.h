@@ -59,10 +59,20 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		}
 	};
 
+	/// <summary>
+	/// A class for construction and application of regression based decision trees.
+	/// </summary>
 	template<class F>
 	class Regressor
 	{
 	public:
+		/// <summary>
+		/// Create and train a classification forest (HistogramAggregator statistics) 
+		/// If OpenMP is compiled, this function parallelises by training multiple trees 
+		/// at once. If not compiled, no parallelisation is used.
+		/// If number of trees is small (< number of available cores) better parallel 
+		/// performance is achieved by using Classifier::TrainPar()
+		/// </summary>
 		static std::auto_ptr<Forest<F, DiffEntropyAggregator> > Train(
 			const DataPointCollection& trainingData,
 			const TrainingParameters& TrainingParameters) // where F : IFeatureResponse
@@ -83,7 +93,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 			std::auto_ptr<Forest<F, DiffEntropyAggregator> > forest
 				= ForestTrainer<F, DiffEntropyAggregator>::ParallelTrainForest(
 					random, TrainingParameters, regressionContext,
-					trainingData, omp_get_max_threads(), &progress_stream);
+					trainingData, &progress_stream);
 			#else
 			std::auto_ptr<Forest<F, DiffEntropyAggregator> > forest
 				= ForestTrainer<F, DiffEntropyAggregator>::TrainForest(
@@ -93,6 +103,43 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 			return forest;
 		}
 
+		/// <summary>
+		/// Create and train a classification forest (HistogramAggregator statistics) 
+		/// If OpenMP is compiled, this function parallelises by evaluating node responses in parallel
+		/// training one tree at a time.
+		/// </summary>
+		static std::auto_ptr<Forest<F, DiffEntropyAggregator> > TrainPar(
+			const DataPointCollection& trainingData,
+			const TrainingParameters& TrainingParameters) // where F : IFeatureResponse
+		{
+
+			if (trainingData.HasTargetValues() == false)
+				throw std::runtime_error("Training data points must have target values.");
+
+			// For random number generation.
+			Random random;
+
+			FeatureFactory<F> featureFactory(trainingData.Dimensions());
+			RegressionTrainingContext<F> regressionContext(&featureFactory);
+			ProgressStream progress_stream(std::cout, Interest);
+			if (TrainingParameters.Verbose)
+				progress_stream.makeVerbose();
+
+			std::auto_ptr<Forest<F, DiffEntropyAggregator>> forest = ParallelForestTrainer<F, DiffEntropyAggregator>::TrainForest(
+				random, TrainingParameters, regressionContext, trainingData, &progress_stream);
+
+			return forest;
+		}
+
+		/// <summary>
+		/// Sends an openCV Mat object down each tree of a forest (per-pixel) and 
+		/// aggregates the results.
+		/// returns a std::vector where each element corresponds to an input pixel's
+		/// probability distribution's mean value. 
+		/// Beware, due to the nature of Forest trees, use of this function 
+		/// will put the trees out of scope. To avoid this, use a ForestShared
+		/// object instead.
+		/// </summary>
 		static std::vector<int16_t> ApplyMat(Forest<F, DiffEntropyAggregator>& forest, const DataPointCollection& regressData)
 		{
 			unsigned int samples = regressData.Count();
@@ -117,6 +164,12 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 			return ret;
 		}
 
+		/// <summary>
+		/// Sends an openCV Mat object down each tree of a forest (per-pixel) and 
+		/// aggregates the results.
+		/// returns a std::vector where each element corresponds to an input pixel's
+		/// probability distribution's mean value. 
+		/// </summary>
 		static std::vector<int16_t> ApplyMat(ForestShared<F, DiffEntropyAggregator>& forest, const DataPointCollection& regressData)
 		{
 			unsigned int samples = regressData.Count();

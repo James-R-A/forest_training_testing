@@ -165,6 +165,9 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		if (patch_size % 2 == 0)
 			throw std::runtime_error("Patch size must be odd");
 
+		if (class_number >= num_classes)
+			throw std::runtime_error("class number outside class range.");
+
 		int first = start;
 		int last = first + number - 1;
 
@@ -258,6 +261,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
 			img_no++;
 		}
+		// TODO need to deal with empty data point collections. Otherwise errors caused in training
 		// Resize data and targets vector to however full they are.
 		result->data_.resize(datum_no);
 		result->data_.shrink_to_fit();

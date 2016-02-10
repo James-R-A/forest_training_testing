@@ -22,27 +22,21 @@ using namespace MicrosoftResearch::Cambridge::Sherwood;
 #define LOOP_DELAY 30
 #define FILE_PATH "D:\\"
 #define SAVE_PATH "D:\\test"
+#define DEF_TREES 3
+#define DEF_CAND_FEAT 10
+#define DEF_THRESH 10
+#define DEF_REG_LEVELS 20
+#define DEF_CLASS_LEVELS 22
 #define RHFR_FLAG false
 #define PSR_FLAG true
 
-bool dirExists(const std::string& dirName_in)
-{
-	DWORD ftyp = GetFileAttributesA(dirName_in.c_str());
-	if (ftyp == INVALID_FILE_ATTRIBUTES)
-		return false;  //something is wrong with your path!
-
-	if (ftyp & FILE_ATTRIBUTE_DIRECTORY)
-		return true;   // this is a directory!
-
-	return false;    // this is not a directory!
-}
 
 int trainClassification(string path,
 	string save_path,
-	int number_of_trees = 1,
-	int candidate_features = 10,
-	int thresholds_per_feature = 10,
-	int max_decision_levels = 5)
+	int number_of_trees = DEF_TREES,
+	int candidate_features = DEF_CAND_FEAT,
+	int thresholds_per_feature = DEF_THRESH,
+	int max_decision_levels = DEF_CLASS_LEVELS)
 {
 	
 	std::cout << "Output forest filename?\t";
@@ -57,6 +51,7 @@ int trainClassification(string path,
 	training_parameters.NumberOfCandidateFeatures = candidate_features;
 	training_parameters.NumberOfCandidateThresholdsPerFeature = thresholds_per_feature;
 	training_parameters.Verbose = false;
+	training_parameters.max_threads = omp_get_max_threads();
 
 	string file_path = path;
 	std::cout << "Searching for some IR and depth images in " << file_path << endl;
@@ -70,20 +65,34 @@ int trainClassification(string path,
 	if (RHFR_FLAG)
 	{
 		std::cout << "\nAttempting training" << endl;
-		std::auto_ptr<Forest<RandomHyperplaneFeatureResponse, HistogramAggregator>> forest = Classifier<RandomHyperplaneFeatureResponse>::Train(
-			*training_data,
-			training_parameters);
+		try
+		{
+			std::auto_ptr<Forest<RandomHyperplaneFeatureResponse, HistogramAggregator>> forest =
+				Classifier<RandomHyperplaneFeatureResponse>::Train(*training_data, training_parameters);
 
-		forest->Serialize(filename);
+			forest->Serialize(filename);
+		}
+		catch (const std::runtime_error& e)
+		{
+			std::cout << "Training Failed" << endl;
+			std::cerr << e.what() << std::endl;;
+		}
 	}
 	else if (PSR_FLAG)
 	{
 		std::cout << "\nAttempting training" << endl;
-		std::auto_ptr<Forest<PixelSubtractionResponse, HistogramAggregator>> forest = Classifier<PixelSubtractionResponse>::Train(
-			*training_data,
-			training_parameters);
+		try
+		{
+			std::auto_ptr<Forest<PixelSubtractionResponse, HistogramAggregator>> forest =
+				Classifier<PixelSubtractionResponse>::Train(*training_data, training_parameters);
 
-		forest->Serialize(filename);
+			forest->Serialize(filename);
+		}
+		catch (const std::runtime_error& e)
+		{
+			std::cout << "Training Failed" << endl;
+			std::cerr << e.what() << std::endl;
+		}
 	}
 	else
 	{
@@ -98,10 +107,10 @@ int trainClassification(string path,
 
 int trainRegression(string path,
 	string save_path,
-	int number_of_trees = 3,
-	int candidate_features = 10,
-	int thresholds_per_feature = 10,
-	int max_decision_levels = 20)
+	int number_of_trees = DEF_TREES,
+	int candidate_features = DEF_CAND_FEAT,
+	int thresholds_per_feature = DEF_THRESH,
+	int max_decision_levels = DEF_REG_LEVELS)
 {
 	std::cout << "Output forest filename?\t";
 	string filename;
@@ -115,6 +124,7 @@ int trainRegression(string path,
 	training_parameters.NumberOfCandidateFeatures = candidate_features;
 	training_parameters.NumberOfCandidateThresholdsPerFeature = thresholds_per_feature;
 	training_parameters.Verbose = false;
+	training_parameters.max_threads = omp_get_max_threads();
 
 	// init the file path
 	string file_path = path;
@@ -122,22 +132,166 @@ int trainRegression(string path,
 	// create a DataPointCollection in the regression format
 	std::auto_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesRegression(file_path,
 		cv::Size(640, 480),
-		false, 100, 0, 5, true, 0);
+		false, 10);
 
 	std::cout << "Data loaded here's how many samples: " << training_data->Count() << std::endl;
 	std::cout << " each with dimensionality: " << training_data->Dimensions() << std::endl;
 
 	// Train a regressoin forest
 	std::cout << "\nAttempting training" << endl;
-	std::auto_ptr<Forest<PixelSubtractionResponse, DiffEntropyAggregator>> forest = Regressor<PixelSubtractionResponse>::Train(
-		*training_data,
-		training_parameters);
+	try
+	{
+		std::auto_ptr<Forest<PixelSubtractionResponse, DiffEntropyAggregator>> forest = 
+			Regressor<PixelSubtractionResponse>::Train(*training_data,training_parameters);
 
-	forest->Serialize(filename);
-	std::cout << "Training complete, forest saved in :" << filename << endl;
+		forest->Serialize(filename);
+		std::cout << "Training complete, forest saved in :" << filename << endl;
+	}
+	catch (const std::runtime_error& e)
+	{
+		std::cout << "Training Failed" << endl;
+		std::cerr << e.what() << std::endl;
+	}
 
 	return 0;
 
+}
+
+int trainClassificationPar(string path,
+	string save_path,
+	int number_of_trees = DEF_TREES,
+	int candidate_features = DEF_CAND_FEAT,
+	int thresholds_per_feature = DEF_THRESH,
+	int max_decision_levels = DEF_CLASS_LEVELS)
+{
+
+	std::cout << "Output forest filename?\t";
+	string filename;
+	std::cin >> filename;
+	filename = save_path + filename;
+
+	// Setup the program training parameters
+	TrainingParameters training_parameters;
+	training_parameters.NumberOfTrees = number_of_trees;
+	training_parameters.MaxDecisionLevels = max_decision_levels;
+	training_parameters.NumberOfCandidateFeatures = candidate_features;
+	training_parameters.NumberOfCandidateThresholdsPerFeature = thresholds_per_feature;
+	training_parameters.Verbose = false;
+	training_parameters.max_threads = omp_get_max_threads();
+
+	string file_path = path;
+	std::cout << "Searching for some IR and depth images in " << file_path << endl;
+	std::auto_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesClass(file_path,
+		cv::Size(640, 480),
+		false, 10, 0, 5);
+
+	std::cout << "Data loaded here's how many samples: " << training_data->Count() << std::endl;
+	std::cout << " each with dimensionality: " << training_data->Dimensions() << std::endl;
+
+	if (RHFR_FLAG)
+	{
+		std::cout << "\nAttempting training" << endl;
+		try
+		{
+			std::auto_ptr<Forest<RandomHyperplaneFeatureResponse, HistogramAggregator>> forest =
+				Classifier<RandomHyperplaneFeatureResponse>::TrainPar(*training_data, training_parameters);
+
+			forest->Serialize(filename);
+		}
+		catch (const std::runtime_error& e)
+		{
+			std::cout << "Training Failed" << endl;
+			std::cerr << e.what() << std::endl;
+		}
+	}
+	else if (PSR_FLAG)
+	{
+		std::cout << "\nAttempting training" << endl;
+		try
+		{
+			std::auto_ptr<Forest<PixelSubtractionResponse, HistogramAggregator>> forest = 
+				Classifier<PixelSubtractionResponse>::TrainPar(*training_data, training_parameters);
+
+			forest->Serialize(filename);
+		}
+		catch (const std::runtime_error& e)
+		{
+			std::cout << "Training Failed" << endl;
+			std::cerr << e.what() << std::endl;
+		}
+	}
+	else
+	{
+		std::cout << "Invalid Feature response flags. Exiting" << endl;
+		return -1;
+	}
+
+	std::cout << "Training complete, forest saved in :" << filename << endl;
+
+	return 0;
+}
+
+int trainRegressionPar(string path,
+	string save_path,
+	int number_of_trees = DEF_TREES,
+	int candidate_features = DEF_CAND_FEAT,
+	int thresholds_per_feature = DEF_THRESH,
+	int max_decision_levels = DEF_REG_LEVELS)
+{
+	std::cout << "Output forest filename?\t";
+	string filename;
+	std::cin >> filename;
+	filename = save_path + filename;
+
+	// Setup the program training parameters
+	TrainingParameters training_parameters;
+	training_parameters.NumberOfTrees = number_of_trees;
+	training_parameters.MaxDecisionLevels = max_decision_levels;
+	training_parameters.NumberOfCandidateFeatures = candidate_features;
+	training_parameters.NumberOfCandidateThresholdsPerFeature = thresholds_per_feature;
+	training_parameters.Verbose = true;
+	training_parameters.max_threads = omp_get_max_threads();
+
+	// init the file path
+	string file_path = path;
+	std::cout << "Searching for some IR and depth images in " << file_path << endl;
+	// create a DataPointCollection in the regression format
+	std::auto_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesRegression(file_path,
+		cv::Size(640, 480),
+		false, 10, 0, 5, true, 1);
+
+	std::cout << "Data loaded here's how many samples: " << training_data->Count() << std::endl;
+	std::cout << " each with dimensionality: " << training_data->Dimensions() << std::endl;
+
+	// Train a regressoin forest
+	std::cout << "\nAttempting training" << endl;
+	try
+	{
+		std::auto_ptr<Forest<PixelSubtractionResponse, DiffEntropyAggregator>> forest =
+			Regressor<PixelSubtractionResponse>::TrainPar(*training_data, training_parameters);
+
+		forest->Serialize(filename);
+		std::cout << "Training complete, forest saved in :" << filename << endl;
+	}
+	catch (const std::runtime_error& e)
+	{
+		std::cout << "Training Failed" << endl;
+		std::cerr << e.what() << std::endl;
+	}
+
+	return 0;
+}
+
+bool dirExists(const std::string& dirName_in)
+{
+	DWORD ftyp = GetFileAttributesA(dirName_in.c_str());
+	if (ftyp == INVALID_FILE_ATTRIBUTES)
+		return false;  //something is wrong with your path!
+
+	if (ftyp & FILE_ATTRIBUTE_DIRECTORY)
+		return true;   // this is a directory!
+
+	return false;    // this is not a directory!
 }
 
 int testMethod(string dir_path)
@@ -297,6 +451,8 @@ void printMenu()
 	std::cout << "Enter 8 to test Classification Forest" << endl;
 	std::cout << "Enter r to train Regression Forest" << endl;
 	std::cout << "Enter c to train Classification Forest" << endl;
+	std::cout << "Enter 1 to train Classification Forest in parallel" << endl;
+	std::cout << "Enter 2 to train Regression Forest in parallel" << endl;
 	std::cout << "Enter q to quit" << endl;
 	std::cout << "\n" << endl;
 }
@@ -337,6 +493,16 @@ int main()
 		else if (in.compare("r") == 0)
 		{
 			trainRegression(FILE_PATH, forest_path);
+			printMenu();
+		}
+		else if (in.compare("1") == 0)
+		{
+			trainClassificationPar(FILE_PATH, forest_path);
+			printMenu();
+		}
+		else if (in.compare("2") == 0)
+		{
+			trainRegressionPar(FILE_PATH, forest_path);
 			printMenu();
 		}
 		else if (in.compare("q") == 0)

@@ -158,6 +158,7 @@
     <ClInclude Include="Interfaces.h" />
     <ClInclude Include="IPUtils.h" />
     <ClInclude Include="Node.h" />
+    <ClInclude Include="ParallelForestTrainer.h" />
     <ClInclude Include="ProgressStream.h" />
     <ClInclude Include="Random.h" />
     <ClInclude Include="Regression.h" />

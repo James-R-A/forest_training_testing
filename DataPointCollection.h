@@ -23,17 +23,17 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 	/// in DataPointCollection::Load()).
 	/// </summary>
 
-	class DataDescriptor
-	{
-	public:
-		enum e
-		{
-			Both = 0x0,
-			Classes = 0x1,
-			TargetValues = 0x2,
-			None = 0x4
-		};
-	};
+	//class DataDescriptor
+	//{
+	//public:
+	//	enum e
+	//	{
+	//		Both = 0x0,
+	//		Classes = 0x1,
+	//		TargetValues = 0x2,
+	//		None = 0x4
+	//	};
+	//};
 
 	/// <summary>
 	/// A collection of data points, each represented by an int and (optionally)

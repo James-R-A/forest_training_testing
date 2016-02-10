@@ -12,7 +12,7 @@
 #include "Node.h"
 
 #include "ForestTrainer.h"
-//#include "ParallelForestTrainer.h"
+#include "ParallelForestTrainer.h"
 
 #include "Interfaces.h"
 #include "ForestShared.h"
