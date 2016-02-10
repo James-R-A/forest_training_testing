@@ -75,7 +75,9 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
 			FeatureFactory<F> featureFactory(trainingData.Dimensions());
 			RegressionTrainingContext<F> regressionContext(&featureFactory);
-			ProgressStream progress_stream(std::cout, Verbose);
+			ProgressStream progress_stream(std::cout, Interest);
+			if (TrainingParameters.Verbose)
+				progress_stream.makeVerbose();
 
 			#if defined(_OPENMP)
 			std::auto_ptr<Forest<F, DiffEntropyAggregator> > forest

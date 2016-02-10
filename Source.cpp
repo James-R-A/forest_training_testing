@@ -44,22 +44,7 @@ int trainClassification(string path,
 	int thresholds_per_feature = 10,
 	int max_decision_levels = 5)
 {
-	/*
-	Training data path
-	Forest output path
-	Forest input path
-	Test data path
-	Validation data path
-
-	set training parameters
-	Max decision levels
-	Number of candidate features
-	Number of candidate thresholds per feature
-	Number of trees]
-
-	load training data, or load Some training data, train and plot test set.
-	*/
-
+	
 	std::cout << "Output forest filename?\t";
 	string filename;
 	std::cin >> filename;
@@ -75,8 +60,7 @@ int trainClassification(string path,
 
 	string file_path = path;
 	std::cout << "Searching for some IR and depth images in " << file_path << endl;
-	std::auto_ptr<DataPointCollection> training_data = DataPointCollection::LoadImages(file_path,
-		DataDescriptor::Classes,
+	std::auto_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesClass(file_path,
 		cv::Size(640, 480),
 		false, 1, 0, 5);
 
@@ -132,16 +116,18 @@ int trainRegression(string path,
 	training_parameters.NumberOfCandidateThresholdsPerFeature = thresholds_per_feature;
 	training_parameters.Verbose = false;
 
+	// init the file path
 	string file_path = path;
 	std::cout << "Searching for some IR and depth images in " << file_path << endl;
-	std::auto_ptr<DataPointCollection> training_data = DataPointCollection::LoadImages(file_path,
-		DataDescriptor::TargetValues,
+	// create a DataPointCollection in the regression format
+	std::auto_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesRegression(file_path,
 		cv::Size(640, 480),
-		false, 100);
+		false, 100, 0, 5, true, 0);
 
 	std::cout << "Data loaded here's how many samples: " << training_data->Count() << std::endl;
 	std::cout << " each with dimensionality: " << training_data->Dimensions() << std::endl;
 
+	// Train a regressoin forest
 	std::cout << "\nAttempting training" << endl;
 	std::auto_ptr<Forest<PixelSubtractionResponse, DiffEntropyAggregator>> forest = Regressor<PixelSubtractionResponse>::Train(
 		*training_data,
@@ -176,8 +162,7 @@ int testMethod(string dir_path)
 	std::cout << "Trees:\t" << to_string(forest->TreeCount()) << endl;
 
 	int64 start_time = cv::getTickCount(); //////////////////
-	std::auto_ptr<DataPointCollection> test_data = DataPointCollection::LoadImages(FILE_PATH,
-		DataDescriptor::Classes,
+	std::auto_ptr<DataPointCollection> test_data = DataPointCollection::LoadImagesClass(FILE_PATH,
 		cv::Size(640, 480),
 		false, 1, 11);
 	int64 process_time = (((cv::getTickCount() - start_time) / cv::getTickFrequency()) * 1000);///////////////

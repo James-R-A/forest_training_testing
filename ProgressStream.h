@@ -35,6 +35,11 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
     /// be directed to the output stream.</param>
     ProgressStream(std::ostream& stream, Verbosity v): verbosity_(v), output_(stream) { };
 
+	void makeVerbose()
+	{
+		this->verbosity_ = Verbose;
+	}
+
     ProgressStream operator[](Verbosity v)
     {
       return ProgressStream(output_, v>verbosity_? Silent : v);

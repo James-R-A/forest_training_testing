@@ -62,24 +62,49 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		static const int UnknownClassLabel = -1;
 
 		/// <summary>
-		/// Load a collection of data from a tab-delimited file with one data point
-		/// per line. The data may optionally have associated with class labels
-		/// (first element on line) and/or target values (last element on line).
+		/// Loads a data set from a directory of IR and depth images
+		/// Loads in a classification problem format
 		/// </summary>
 		/// <param name="path">Path of directory containing images to be read.</param>
-		/// <param name="descriptor"> enum representing the type of data to be loaded, targets, classes, or both </param>
+		/// <param name="img_size">The expected image size of the input data</param>
 		/// <param name="depth_raw"> depth data type, raw, or in mm </param>
-		/// <param name="start">Image number to start at (default 0)</param>
 		/// <param name="number">Number of images to be loaded</param>
-		/// <param name="patch">Size of pixel patch to load (default 1, i.e. single pixel)</param>
-		static  std::auto_ptr<DataPointCollection> LoadImages(
+		/// <param name="start">Image number to start at (default 0)</param>
+		/// <param name="num_classes"> Number of classes to classify depth data </param>
+		/// <param name="zero_class_label"> Is there a seperate class for zero output? </param>
+		/// <param name="patch_size">Size of pixel patch to load (default 1, i.e. single pixel)</param>
+		static  std::auto_ptr<DataPointCollection> LoadImagesClass(
 			std::string path, 
-			DataDescriptor::e descriptor, 
 			cv::Size img_size,
 			bool depth_raw, 
 			int number, 
 			int start=0,
 			int num_classes = 5,
+			bool zero_class_label = true,
+			int patch_size = 25);
+
+		/// <summary>
+		/// Loads a data set from a directory of IR and depth images
+		/// Loads in a regression problem format
+		/// </summary>
+		/// <param name="path">Path of directory containing images to be read.</param>
+		/// <param name="img_size">The expected image size of the input data</param>
+		/// <param name="depth_raw"> depth data type, raw, or in mm </param>
+		/// <param name="number">Number of images to be loaded</param>
+		/// <param name="start">Image number to start at (default 0)</param>
+		/// <param name="num_classes"> Number of classes to classify depth data </param>
+		/// <param name="zero_class_label"> Is there a seperate class for zero output? </param>
+		/// <param name="class_number"> which class data subset to load, -1 for all </param>
+		/// <param name="patch_size">Size of pixel patch to load (default 1, i.e. single pixel)</param>
+		static  std::auto_ptr<DataPointCollection> LoadImagesRegression(
+			std::string path,
+			cv::Size img_size,
+			bool depth_raw,
+			int number,
+			int start = 0,
+			int num_classes = 5,
+			bool zero_class_label = true,
+			int class_number = -1,
 			int patch_size = 25);
 
 		static std::auto_ptr<DataPointCollection> LoadMat(cv::Mat, cv::Size img_size);
