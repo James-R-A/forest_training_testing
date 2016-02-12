@@ -1,12 +1,19 @@
 #pragma once
-#include <opencv2\opencv.hpp>
-#include <opencv2\videoio.hpp>
-#include <opencv\highgui.h>
 
 #include <stdlib.h>
 #include <stdio.h>
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+#ifdef __linux__
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
 
-using namespace std;
+#include <opencv2/opencv.hpp>
+#include <opencv2/videoio.hpp>
+#include <opencv/highgui.h>
 
 class IPUtils
 {
@@ -15,7 +22,7 @@ public:
 	static cv::Mat getLogarithmic(cv::Mat image_in, int logConst = 10, int logMult = 1);
 	static cv::Mat getThresholded(cv::Mat image_in, int threshold_value = 0, int threshold_type = 0);
 	static cv::Mat getBilateralFiltered(cv::Mat image_in, int value=30);
-	static string getTypeString(int type);
+	static std::string getTypeString(int type);
 
 	/// <summary>
 	/// Pre-process routine for infrared intensity images input to forest training
@@ -42,6 +49,9 @@ public:
 	static cv::Mat getPatch(cv::Mat image, cv::Point center, int patch_size);
 
 	static std::vector<uchar> vectorFromBins(cv::Mat bin_mat, cv::Size expected_size);
+
+	static bool dirExists(const std::string& dirName_in);
+	
 	IPUtils();
 	~IPUtils();
 };

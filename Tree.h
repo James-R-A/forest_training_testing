@@ -3,8 +3,7 @@
 // This file defines the Tree class, which is used to represent decision trees.
 
 #include <assert.h>
-#include <string.h>
-
+#include <cstring>
 #include <iostream>
 #include <vector>
 #include <string>

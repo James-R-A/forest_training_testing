@@ -3,7 +3,7 @@
 // Main header file for Sherwood's object oriented framework for
 // decision forest inference.
 
-#include <opencv2\opencv.hpp>
+#include <opencv2/opencv.hpp>
 
 #include "Random.h"
 

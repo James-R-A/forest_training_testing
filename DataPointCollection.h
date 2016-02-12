@@ -6,7 +6,6 @@
 #include <memory>
 #include <cstdint>
 #include <tuple>
-#include <windows.h>
 #include <algorithm>
 #include <fstream>
 #include <sstream>
@@ -41,11 +40,11 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 	/// </summary>
 	class DataPointCollection: public IDataPointCollection
 	{
-		std::vector<std::tuple<cv::Mat*, cv::Point>> data_;
+		std::vector< std::tuple<cv::Mat*, cv::Point> > data_;
 		std::vector<cv::Mat> images_;
 		cv::Size image_size;
 		int dimension_;
-		long data_vec_size;
+		int64_t data_vec_size;
 
 		bool depth_raw;
 		
@@ -158,7 +157,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		/// </summary>
 		/// <param name="i">Zero-based data point index.</param>
 		/// <returns>Pointer to the first element of the data point.</returns>
-		const tuple<cv::Mat*,cv::Point>* GetDataPoint(int i) const
+		const std::tuple<cv::Mat*,cv::Point>* GetDataPoint(int i) const
 		{
 			return &data_[i];
 		}

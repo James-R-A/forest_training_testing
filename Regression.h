@@ -125,7 +125,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 			if (TrainingParameters.Verbose)
 				progress_stream.makeVerbose();
 
-			std::auto_ptr<Forest<F, DiffEntropyAggregator>> forest = ParallelForestTrainer<F, DiffEntropyAggregator>::TrainForest(
+			std::auto_ptr<Forest<F, DiffEntropyAggregator> > forest = ParallelForestTrainer<F, DiffEntropyAggregator>::TrainForest(
 				random, TrainingParameters, regressionContext, trainingData, &progress_stream);
 
 			return forest;
@@ -149,7 +149,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 			for (unsigned int t = 0; t < forest.TreeCount(); t++)
 			{
 				std::vector<int> leafNodeIndices;
-				std::shared_ptr<Tree<F, DiffEntropyAggregator>> tree = forest.GetTreeShared(t);
+				std::shared_ptr<Tree<F, DiffEntropyAggregator> > tree = forest.GetTreeShared(t);
 				tree->Apply(regressData, leafNodeIndices);
 
 				for (unsigned int i = 0; i < regressData.Count(); i++)

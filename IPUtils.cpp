@@ -17,7 +17,7 @@ cv::Mat IPUtils::getExponential(cv::Mat image_in, int expConst, int expMult)
 
 	// Check image in is grayscale, if not, change it.
 	if (input_image.channels() > 1)
-		cvtColor(input_image, grayscale_image, CV_BGR2GRAY);
+		cv::cvtColor(input_image, grayscale_image, CV_BGR2GRAY);
 	else
 		grayscale_image = input_image;
 
@@ -119,8 +119,8 @@ cv::Mat IPUtils::getBilateralFiltered(cv::Mat image_in, int value)
 	return output_image;
 }
 
-string IPUtils::getTypeString(int type) {
-	string r;
+std::string IPUtils::getTypeString(int type) {
+	std::string r;
 
 	uchar depth = type & CV_MAT_DEPTH_MASK;
 	uchar chans = 1 + (type >> CV_CN_SHIFT);
@@ -152,7 +152,7 @@ cv::Mat IPUtils::preProcess(cv::Mat image_in, int bilat_param, int threshold_val
 
 std::vector<int> IPUtils::generateDepthBinMap(bool zero_bin, int total_bins, int max)
 {
-	vector<int> binMap;
+	std::vector<int> binMap;
 	binMap.resize(max + 1);
 	int ranged_classes = zero_bin ? total_bins - 1 : total_bins;
 	int division = (int)ceil((float)max / ranged_classes);
@@ -246,6 +246,32 @@ std::vector<uchar> IPUtils::vectorFromBins(cv::Mat bin_mat, cv::Size expected_si
 	
 	return out_vec;
 }
+
+#ifdef __WIN32
+bool dirExists(const std::string& dirName_in)
+{
+	unsigned long ftyp = GetFileAttributesA(dirName_in.c_str());
+	if (ftyp == INVALID_FILE_ATTRIBUTES)
+		return false;  //something is wrong with your path!
+
+	if (ftyp & FILE_ATTRIBUTE_DIRECTORY)
+		return true;   // this is a directory!
+
+	return false;    // this is not a directory!
+}
+#endif
+#ifdef __linux__
+bool IPUtils::dirExists(const std::string& dirName_in)
+{
+    const char *dirName_carr = dirName_in.c_str();
+    bool is_dir = false;
+    struct stat st;
+    if(stat(dirName_carr, &st)==0)
+        is_dir = S_ISDIR(st.st_mode);
+
+    return is_dir;
+}
+#endif
 
 IPUtils::IPUtils()
 {

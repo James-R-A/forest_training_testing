@@ -11,7 +11,7 @@
 #include <cmath>
 #include <sstream>
 
-#include <opencv2\opencv.hpp>
+#include <opencv2/opencv.hpp>
 
 #include "DataPointCollection.h"
 #include "Interfaces.h"

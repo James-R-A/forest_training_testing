@@ -24,7 +24,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
 		typedef typename std::vector< Tree<F, S>* >::size_type TreeIndex;
 
-		std::vector<std::shared_ptr<Tree<F, S>>> trees_;
+		std::vector<std::shared_ptr<Tree<F, S> > > trees_;
 
 		~ForestShared()
 		{
@@ -39,9 +39,9 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		/// </summary>
 		/// <param name="forest">The regular forest as defined in the bog-standard Sherwood library</param>
 		/// <Returns> A std::unique_ptr to the ForestShared.
-		static std::unique_ptr<ForestShared<F, S>> ForestSharedFromForest(Forest<F, S>& forest)
+		static std::unique_ptr<ForestShared<F, S> > ForestSharedFromForest(Forest<F, S>& forest)
 		{
-			std::unique_ptr<ForestShared<F, S>> forest_shared = std::unique_ptr<ForestShared<F, S>>(new ForestShared<F, S>);
+			std::unique_ptr<ForestShared<F, S> > forest_shared = std::unique_ptr<ForestShared<F, S> >(new ForestShared<F, S>);
 
 			for (int i = 0; i < forest.TreeCount(); i++)
 			{
@@ -62,8 +62,8 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		{
 			tree->CheckValid();
 
-			std::shared_ptr<Tree<F, S>> sp1(nullptr);
-			sp1 = make_shared<Tree<F, S>>(*tree);
+			std::shared_ptr<Tree<F, S> > sp1(nullptr);
+			sp1 = std::make_shared<Tree<F, S> >(*tree);
 
 			trees_.push_back(sp1);
 		}

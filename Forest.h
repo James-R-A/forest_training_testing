@@ -168,10 +168,10 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 	/// </summary>
 	/// <param name="index">A zero-based integer index.</param>
 	/// <returns>A shared pointer to the tree.</returns>
-	std::shared_ptr<Tree<F, S>> GetTreeShared(int index)
+	std::shared_ptr<Tree<F, S> > GetTreeShared(int index)
 	{
-		std::shared_ptr<Tree<F, S>> sp1(nullptr);
-		sp1 = make_shared<Tree<F, S>>(*trees_[index]);
+		std::shared_ptr<Tree<F, S> > sp1(nullptr);
+		sp1 = std::make_shared<Tree<F, S> >(*trees_[index]);
 		
 		return sp1;
 	}

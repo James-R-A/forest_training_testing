@@ -13,7 +13,7 @@ namespace MicrosoftResearch {
 			float RandomHyperplaneFeatureResponse::GetResponse(const IDataPointCollection& data, unsigned int index) const
 			{
 				const DataPointCollection& concreteData = (const DataPointCollection&)(data);
-				const tuple<cv::Mat*, cv::Point>* datum = concreteData.GetDataPoint(index);
+				const std::tuple<cv::Mat*, cv::Point>* datum = concreteData.GetDataPoint(index);
 
 				cv::Mat* datum_matp = std::get<0>(*datum);
 				cv::Point datum_point = std::get<1>(*datum);
@@ -48,7 +48,7 @@ namespace MicrosoftResearch {
 			{
 				const DataPointCollection& concreteData = (const DataPointCollection&)(data);
 
-				const tuple<cv::Mat*, cv::Point>* datum = concreteData.GetDataPoint(index);
+				const std::tuple<cv::Mat*, cv::Point>* datum = concreteData.GetDataPoint(index);
 				
 				cv::Mat* datum_matp = std::get<0>(*datum);
 				cv::Point datum_point = std::get<1>(*datum);

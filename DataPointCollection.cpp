@@ -2,18 +2,6 @@
 
 namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 {
-	bool dirExists(const std::string& dirName_in)
-	{
-		DWORD ftyp = GetFileAttributesA(dirName_in.c_str());
-		if (ftyp == INVALID_FILE_ATTRIBUTES)
-			return false;  //something is wrong with your path!
-
-		if (ftyp & FILE_ATTRIBUTE_DIRECTORY)
-			return true;   // this is a directory!
-
-		return false;    // this is not a directory!
-	}
-
 	// Iterares through a depth image (16 bit uint) and classifies each pixel into correct bin as 
 	// specified in the pix_to_label look-up table
 	cv::Mat createLabelMatrix(cv::Mat depth_image, std::vector<int> pix_to_label)
@@ -48,7 +36,8 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		bool zero_class_label,
 		int patch_size)
 	{
-		if (!dirExists(path))
+		
+		if (!IPUtils::dirExists(path))
 			throw std::runtime_error("Failed to find directory:\t" + path);
 
 		if (patch_size % 2 == 0)
@@ -95,10 +84,10 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		for (int i = first; i <= last;i++)
 		{
 			// generate individual image paths
-			ir_path = path + "test" + to_string(i) + "ir.png";
-			depth_path = path + "test" + to_string(i) + "depth.png";
+			ir_path = path + "test" + std::to_string(i) + "ir.png";
+			depth_path = path + "test" + std::to_string(i) + "depth.png";
 
-			std::cout << to_string(i) << endl;
+			std::cout << std::to_string(i) << std::endl;
 			// read depth and ir images
 			ir_image = cv::imread(ir_path, -1);
 			depth_image = cv::imread(depth_path, -1);
@@ -138,7 +127,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 				{
 					result->labels_[label_no] = label_pixel[c];
 					label_no++;
-					result->data_[datum_no] = tuple<cv::Mat*, cv::Point>(&(result->images_[img_no]), cv::Point(c, r));
+					result->data_[datum_no] = std::tuple<cv::Mat*, cv::Point>(&(result->images_[img_no]), cv::Point(c, r));
 					datum_no++;
 				}
 			}
@@ -159,7 +148,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		int class_number,
 		int patch_size)
 	{
-		if (!dirExists(path))
+		if (!IPUtils::dirExists(path))
 			throw std::runtime_error("Failed to find directory:\t" + path);
 
 		if (patch_size % 2 == 0)
@@ -206,10 +195,10 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		for (int i = first; i <= last; i++)
 		{
 			// generate individual image paths
-			ir_path = path + "test" + to_string(i) + "ir.png";
-			depth_path = path + "test" + to_string(i) + "depth.png";
+			ir_path = path + "test" + std::to_string(i) + "ir.png";
+			depth_path = path + "test" + std::to_string(i) + "depth.png";
 
-			std::cout << to_string(i) << endl;
+			std::cout << std::to_string(i) << std::endl;
 			// read depth and ir images
 			ir_image = cv::imread(ir_path, -1);
 			depth_image = cv::imread(depth_path, -1);
@@ -253,7 +242,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 					{
 						result->targets_[target_no] = depth_pixel[c];
 						target_no++;
-						result->data_[datum_no] = tuple<cv::Mat*, cv::Point>(&(result->images_[img_no]), cv::Point(c, r));
+						result->data_[datum_no] = std::tuple<cv::Mat*, cv::Point>(&(result->images_[img_no]), cv::Point(c, r));
 						datum_no++;
 					}
 				}
@@ -295,7 +284,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
 			for (unsigned int c = 0; c < img_size.width; c++)
 			{
-				result->data_[datum_no] = tuple<cv::Mat*, cv::Point>(&(result->images_[0]), cv::Point(c, r));
+				result->data_[datum_no] = std::tuple<cv::Mat*, cv::Point>(&(result->images_[0]), cv::Point(c, r));
 				datum_no++;
 			}
 		}

@@ -133,7 +133,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 			if (TrainingParameters.Verbose)
 				progress_stream.makeVerbose();
 
-			std::auto_ptr<Forest<F, HistogramAggregator>> forest = ParallelForestTrainer<F, HistogramAggregator>::TrainForest(
+			std::auto_ptr<Forest<F, HistogramAggregator> > forest = ParallelForestTrainer<F, HistogramAggregator>::TrainForest(
 				random, TrainingParameters, classificationContext, trainingData, &progress_stream);
 
 			return forest;
@@ -159,7 +159,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 			for (unsigned int t = 0; t < forest.TreeCount(); t++)
 			{
 				std::vector<int> leafNodeIndices;
-				std::shared_ptr<Tree<F, HistogramAggregator>> tree = forest.GetTreeShared(t);
+				std::shared_ptr<Tree<F, HistogramAggregator> > tree = forest.GetTreeShared(t);
 				tree->Apply(classifyData, leafNodeIndices);
 				
 				for (unsigned int i = 0; i < classifyData.Count(); i++)

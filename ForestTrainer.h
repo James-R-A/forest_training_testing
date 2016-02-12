@@ -325,7 +325,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       return forest;
     }
 
-	static std::auto_ptr<Forest<F, S>> ParallelTrainForest(
+	static std::auto_ptr<Forest<F, S> > ParallelTrainForest(
 		Random& random,
 		const TrainingParameters& parameters,
 		ITrainingContext<F, S>& context,
@@ -342,7 +342,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		else if (maxThreads > omp_get_max_threads())
 			maxThreads = omp_get_max_threads();
 
-		std::auto_ptr<Forest<F, S>> forest;
+		std::auto_ptr<Forest<F, S> > forest;
 
 		if (maxThreads == 1)
 		{
@@ -360,7 +360,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 			#pragma omp parallel for num_threads(maxThreads)
 				for (int t = 0; t < parameters.NumberOfTrees; t++)
 				{
-					std::auto_ptr<Tree<F, S>> tree = TreeTrainer<F, S>::TrainTree(random,
+					std::auto_ptr<Tree<F, S> > tree = TreeTrainer<F, S>::TrainTree(random,
 						context, parameters, data, progress);
 
 					omp_set_lock(&writelock);
