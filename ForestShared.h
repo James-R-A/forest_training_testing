@@ -28,8 +28,8 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
 		~ForestShared()
 		{
-			for (TreeIndex t = 0; t<trees_.size(); t++)
-				delete trees_[t].get();
+			//for (TreeIndex t = 0; t<trees_.size(); t++)
+			//	delete trees_[t].get();
 		}
 
 		/// <summary>

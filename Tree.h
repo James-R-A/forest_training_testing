@@ -8,6 +8,9 @@
 #include <vector>
 #include <string>
 #include <stdexcept>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include "Interfaces.h"
 #include "Node.h"
@@ -309,7 +312,8 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		if (i0 == i1)   // No samples left
 			return;
 
-		#pragma omp parallel for num_threads(7)
+    int max_threads = omp_get_max_threads();
+		#pragma omp parallel for num_threads(max_threads)
 		for (int i = i0; i < i1; i++)
 		{
 			responses_[i] = node.Feature.GetResponse(data, dataIndices[i]);
