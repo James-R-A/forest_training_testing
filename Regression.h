@@ -73,7 +73,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		/// If number of trees is small (< number of available cores) better parallel 
 		/// performance is achieved by using Classifier::TrainPar()
 		/// </summary>
-		static std::auto_ptr<Forest<F, DiffEntropyAggregator> > Train(
+		static std::unique_ptr<Forest<F, DiffEntropyAggregator> > Train(
 			const DataPointCollection& trainingData,
 			const TrainingParameters& TrainingParameters) // where F : IFeatureResponse
 		{
@@ -90,12 +90,12 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 				progress_stream.makeVerbose();
 
 			#if defined(_OPENMP)
-			std::auto_ptr<Forest<F, DiffEntropyAggregator> > forest
+			std::unique_ptr<Forest<F, DiffEntropyAggregator> > forest
 				= ForestTrainer<F, DiffEntropyAggregator>::ParallelTrainForest(
 					random, TrainingParameters, regressionContext,
 					trainingData, &progress_stream);
 			#else
-			std::auto_ptr<Forest<F, DiffEntropyAggregator> > forest
+			std::unique_ptr<Forest<F, DiffEntropyAggregator> > forest
 				= ForestTrainer<F, DiffEntropyAggregator>::TrainForest(
 					random, TrainingParameters, regressionContext, trainingData, &progress_stream);
 			#endif
@@ -108,7 +108,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		/// If OpenMP is compiled, this function parallelises by evaluating node responses in parallel
 		/// training one tree at a time.
 		/// </summary>
-		static std::auto_ptr<Forest<F, DiffEntropyAggregator> > TrainPar(
+		static std::unique_ptr<Forest<F, DiffEntropyAggregator> > TrainPar(
 			const DataPointCollection& trainingData,
 			const TrainingParameters& TrainingParameters) // where F : IFeatureResponse
 		{
@@ -125,7 +125,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 			if (TrainingParameters.Verbose)
 				progress_stream.makeVerbose();
 
-			std::auto_ptr<Forest<F, DiffEntropyAggregator> > forest = ParallelForestTrainer<F, DiffEntropyAggregator>::TrainForest(
+			std::unique_ptr<Forest<F, DiffEntropyAggregator> > forest = ParallelForestTrainer<F, DiffEntropyAggregator>::TrainForest(
 				random, TrainingParameters, regressionContext, trainingData, &progress_stream);
 
 			return forest;

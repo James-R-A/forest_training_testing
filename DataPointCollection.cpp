@@ -26,7 +26,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		return label_mat;
 	}
 
-	std::auto_ptr<DataPointCollection> DataPointCollection::LoadImagesClass(
+	std::unique_ptr<DataPointCollection> DataPointCollection::LoadImagesClass(
 		std::string path, 
 		cv::Size img_size,
 		bool depth_raw,
@@ -47,7 +47,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		int last = first + number -1;
 
 		// Set up DataPointCollection object
-		std::auto_ptr<DataPointCollection> result = std::auto_ptr<DataPointCollection>(new DataPointCollection());
+		std::unique_ptr<DataPointCollection> result = std::unique_ptr<DataPointCollection>(new DataPointCollection());
 		result->dimension_ = patch_size * patch_size;
 		result->depth_raw = depth_raw;
 		result->image_size = img_size;
@@ -137,7 +137,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		return result;
 	}
 
-	std::auto_ptr<DataPointCollection> DataPointCollection::LoadImagesRegression(
+	std::unique_ptr<DataPointCollection> DataPointCollection::LoadImagesRegression(
 		std::string path,
 		cv::Size img_size,
 		bool depth_raw,
@@ -161,7 +161,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		int last = first + number - 1;
 
 		// Set up DataPointCollection object
-		std::auto_ptr<DataPointCollection> result = std::auto_ptr<DataPointCollection>(new DataPointCollection());
+		std::unique_ptr<DataPointCollection> result = std::unique_ptr<DataPointCollection>(new DataPointCollection());
 		result->dimension_ = patch_size * patch_size;
 		result->depth_raw = depth_raw;
 		result->image_size = img_size;
@@ -261,14 +261,14 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		return result;
 	}
 
-	std::auto_ptr<DataPointCollection> DataPointCollection::LoadMat(cv::Mat mat_in, cv::Size img_size)
+	std::unique_ptr<DataPointCollection> DataPointCollection::LoadMat(cv::Mat mat_in, cv::Size img_size)
 	{
 		// If the datatypes in the images are incorrect
 		if (IPUtils::getTypeString(mat_in.type()) != "8UC1")
 			throw std::runtime_error("Incorrect image type, expecting CV_8UC1");
 
 		// Set up DataPointCollection object
-		std::auto_ptr<DataPointCollection> result = std::auto_ptr<DataPointCollection>(new DataPointCollection());
+		std::unique_ptr<DataPointCollection> result = std::unique_ptr<DataPointCollection>(new DataPointCollection());
 		result->dimension_ = 1;
 		result->image_size = img_size;
 		result->images_.resize(1);

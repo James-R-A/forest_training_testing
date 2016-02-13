@@ -72,7 +72,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		/// <param name="num_classes"> Number of classes to classify depth data </param>
 		/// <param name="zero_class_label"> Is there a seperate class for zero output? </param>
 		/// <param name="patch_size">Size of pixel patch to load (default 1, i.e. single pixel)</param>
-		static  std::auto_ptr<DataPointCollection> LoadImagesClass(
+		static  std::unique_ptr<DataPointCollection> LoadImagesClass(
 			std::string path, 
 			cv::Size img_size,
 			bool depth_raw, 
@@ -95,7 +95,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		/// <param name="zero_class_label"> Is there a seperate class for zero output? </param>
 		/// <param name="class_number"> which class data subset to load, -1 for all </param>
 		/// <param name="patch_size">Size of pixel patch to load (default 1, i.e. single pixel)</param>
-		static  std::auto_ptr<DataPointCollection> LoadImagesRegression(
+		static  std::unique_ptr<DataPointCollection> LoadImagesRegression(
 			std::string path,
 			cv::Size img_size,
 			bool depth_raw,
@@ -106,7 +106,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 			int class_number = -1,
 			int patch_size = 25);
 
-		static std::auto_ptr<DataPointCollection> LoadMat(cv::Mat, cv::Size img_size);
+		static std::unique_ptr<DataPointCollection> LoadMat(cv::Mat, cv::Size img_size);
 
 		/// <summary>
 		/// Do these data have class labels?

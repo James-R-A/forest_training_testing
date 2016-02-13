@@ -56,7 +56,7 @@ int trainClassification(std::string path,
 
 	std::string file_path = path;
 	std::cout << "Searching for some IR and depth images in " << file_path << std::endl;
-	std::auto_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesClass(file_path,
+	std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesClass(file_path,
 		cv::Size(640, 480),
 		false, 1, 0, 5);
 
@@ -68,7 +68,7 @@ int trainClassification(std::string path,
 		std::cout << "\nAttempting training" << std::endl;
 		try
 		{
-			std::auto_ptr<Forest<RandomHyperplaneFeatureResponse, HistogramAggregator> > forest =
+			std::unique_ptr<Forest<RandomHyperplaneFeatureResponse, HistogramAggregator> > forest =
 				Classifier<RandomHyperplaneFeatureResponse>::Train(*training_data, training_parameters);
 
 			forest->Serialize(filename);
@@ -84,7 +84,7 @@ int trainClassification(std::string path,
 		std::cout << "\nAttempting training" << std::endl;
 		try
 		{
-			std::auto_ptr<Forest<PixelSubtractionResponse, HistogramAggregator> > forest =
+			std::unique_ptr<Forest<PixelSubtractionResponse, HistogramAggregator> > forest =
 				Classifier<PixelSubtractionResponse>::Train(*training_data, training_parameters);
 
 			forest->Serialize(filename);
@@ -131,7 +131,7 @@ int trainRegression(std::string path,
 	std::string file_path = path;
 	std::cout << "Searching for some IR and depth images in " << file_path << std::endl;
 	// create a DataPointCollection in the regression format
-	std::auto_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesRegression(file_path,
+	std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesRegression(file_path,
 		cv::Size(640, 480),
 		false, 10);
 
@@ -142,7 +142,7 @@ int trainRegression(std::string path,
 	std::cout << "\nAttempting training" << std::endl;
 	try
 	{
-		std::auto_ptr<Forest<PixelSubtractionResponse, DiffEntropyAggregator> > forest = 
+		std::unique_ptr<Forest<PixelSubtractionResponse, DiffEntropyAggregator> > forest = 
 			Regressor<PixelSubtractionResponse>::Train(*training_data,training_parameters);
 
 		forest->Serialize(filename);
@@ -182,7 +182,7 @@ int trainClassificationPar(std::string path,
 
 	std::string file_path = path;
 	std::cout << "Searching for some IR and depth images in " << file_path << std::endl;
-	std::auto_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesClass(file_path,
+	std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesClass(file_path,
 		cv::Size(640, 480),
 		false, 10, 0, 5);
 
@@ -194,7 +194,7 @@ int trainClassificationPar(std::string path,
 		std::cout << "\nAttempting training" << std::endl;
 		try
 		{
-			std::auto_ptr<Forest<RandomHyperplaneFeatureResponse, HistogramAggregator> > forest =
+			std::unique_ptr<Forest<RandomHyperplaneFeatureResponse, HistogramAggregator> > forest =
 				Classifier<RandomHyperplaneFeatureResponse>::TrainPar(*training_data, training_parameters);
 
 			forest->Serialize(filename);
@@ -210,7 +210,7 @@ int trainClassificationPar(std::string path,
 		std::cout << "\nAttempting training" << std::endl;
 		try
 		{
-			std::auto_ptr<Forest<PixelSubtractionResponse, HistogramAggregator> > forest = 
+			std::unique_ptr<Forest<PixelSubtractionResponse, HistogramAggregator> > forest = 
 				Classifier<PixelSubtractionResponse>::TrainPar(*training_data, training_parameters);
 
 			forest->Serialize(filename);
@@ -257,7 +257,7 @@ int trainRegressionPar(std::string path,
 	std::string file_path = path;
 	std::cout << "Searching for some IR and depth images in " << file_path << std::endl;
 	// create a DataPointCollection in the regression format
-	std::auto_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesRegression(file_path,
+	std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesRegression(file_path,
 		cv::Size(640, 480),
 		false, 10, 0, 5, true, 1);
 
@@ -268,7 +268,7 @@ int trainRegressionPar(std::string path,
 	std::cout << "\nAttempting training" << std::endl;
 	try
 	{
-		std::auto_ptr<Forest<PixelSubtractionResponse, DiffEntropyAggregator> > forest =
+		std::unique_ptr<Forest<PixelSubtractionResponse, DiffEntropyAggregator> > forest =
 			Regressor<PixelSubtractionResponse>::TrainPar(*training_data, training_parameters);
 
 		forest->Serialize(filename);
@@ -295,17 +295,17 @@ int testMethod(std::string dir_path)
 	std::cout << "Attempting to deserialize forest from " << full_path << std::endl;
 
 
-	std::auto_ptr<Forest<PixelSubtractionResponse, HistogramAggregator> > forest =
+	std::unique_ptr<Forest<PixelSubtractionResponse, HistogramAggregator> > forest =
 		Forest<PixelSubtractionResponse, HistogramAggregator>::Deserialize(full_path);
 
-	//std::auto_ptr<Forest<RandomHyperplaneFeatureResponse, HistogramAggregator> > forest =
+	//std::unique_ptr<Forest<RandomHyperplaneFeatureResponse, HistogramAggregator> > forest =
 	//	Forest<RandomHyperplaneFeatureResponse, HistogramAggregator>::Deserialize(full_path);
 
 	std::cout << "Forest loaded:" << std::endl;
 	std::cout << "Trees:\t" << std::to_string(forest->TreeCount()) << std::endl;
 
 	int64 start_time = cv::getTickCount(); //////////////////
-	std::auto_ptr<DataPointCollection> test_data = DataPointCollection::LoadImagesClass(FILE_PATH,
+	std::unique_ptr<DataPointCollection> test_data = DataPointCollection::LoadImagesClass(FILE_PATH,
 		cv::Size(640, 480),
 		false, 1, 11);
 	int64 process_time = (((cv::getTickCount() - start_time) / cv::getTickFrequency()) * 1000);///////////////
@@ -318,7 +318,7 @@ int testMethod(std::string dir_path)
 		throw;
 
 	start_time = cv::getTickCount(); //////////////////
-	std::auto_ptr<DataPointCollection> test_data1 = DataPointCollection::LoadMat(testMat, cv::Size(640, 480));
+	std::unique_ptr<DataPointCollection> test_data1 = DataPointCollection::LoadMat(testMat, cv::Size(640, 480));
 	process_time = (((cv::getTickCount() - start_time) / cv::getTickFrequency()) * 1000);///////////////
 	std::cout << "Process time data load:" << std::to_string(process_time) << std::endl;
 
@@ -343,7 +343,7 @@ int testMethod(std::string dir_path)
 
 	cv::waitKey(0);
 	cv::destroyAllWindows();
-
+	
 	return 0;
 
 }
@@ -367,13 +367,14 @@ int regressOnline(std::string dir_path)
 	cv::Mat result_norm1;
 
 	// load forest
-	std::auto_ptr<Forest<PixelSubtractionResponse, DiffEntropyAggregator> > forest =
+	std::unique_ptr<Forest<PixelSubtractionResponse, DiffEntropyAggregator> > forest =
 		Forest<PixelSubtractionResponse, DiffEntropyAggregator>::Deserialize(forest_path);
 	// Create ForestShared from loaded forest
 	std::unique_ptr<ForestShared<PixelSubtractionResponse, DiffEntropyAggregator> > forest_shared =
 		ForestShared<PixelSubtractionResponse, DiffEntropyAggregator>::ForestSharedFromForest(*forest);
 	// Delete original forest. May roll these steps into one later if we don't need a regular forest application.
 	forest->~Forest();
+	forest.release();
 
 	for (int i = 0; i < 106; i++)
 	{
@@ -383,7 +384,7 @@ int regressOnline(std::string dir_path)
 		if (!test_image.data)
 			continue;
 
-		std::auto_ptr<DataPointCollection> test_data1 = DataPointCollection::LoadMat(test_image, cv::Size(640, 480));
+		std::unique_ptr<DataPointCollection> test_data1 = DataPointCollection::LoadMat(test_image, cv::Size(640, 480));
 		reg_result = Regressor<PixelSubtractionResponse>::ApplyMat(*forest_shared, *test_data1);
 
 		reg_mat = cv::Mat(480, 640, CV_16UC1, (uint16_t*)reg_result.data());
@@ -395,6 +396,7 @@ int regressOnline(std::string dir_path)
 		if(cv::waitKey(wait_time) >= 0)
 			break;
 	}
+	cv::startWindowThread();
 	cv::destroyAllWindows();
 	return 0;
 }
@@ -417,13 +419,14 @@ int classifyOnline(std::string dir_path)
 	cv::Mat result_norm1;
 
 	// load forest
-	std::auto_ptr<Forest<PixelSubtractionResponse, HistogramAggregator> > forest =
+	std::unique_ptr<Forest<PixelSubtractionResponse, HistogramAggregator> > forest =
 		Forest<PixelSubtractionResponse, HistogramAggregator>::Deserialize(forest_path);
 	// Create ForestShared from loaded forest
 	std::unique_ptr<ForestShared<PixelSubtractionResponse, HistogramAggregator> > forest_shared =
 		ForestShared<PixelSubtractionResponse, HistogramAggregator>::ForestSharedFromForest(*forest);
 	// Delete original forest. May roll these steps into one later if we don't need a regular forest application.
 	forest->~Forest();
+	forest.release();
 
 	for (int i = 0; i < 106; i++)
 	{
@@ -433,7 +436,7 @@ int classifyOnline(std::string dir_path)
 		if (!test_image.data)
 			continue;
 
-		std::auto_ptr<DataPointCollection> test_data1 = DataPointCollection::LoadMat(test_image, cv::Size(640, 480));
+		std::unique_ptr<DataPointCollection> test_data1 = DataPointCollection::LoadMat(test_image, cv::Size(640, 480));
 		bins_mat = Classifier<PixelSubtractionResponse>::ApplyMat(*forest_shared, *test_data1);
 		std::vector<uchar> bins_vec = IPUtils::vectorFromBins(bins_mat, cv::Size(640, 480));
 		cv::Mat result_mat1 = cv::Mat(480, 640, CV_8UC1, (uint8_t*)bins_vec.data());
@@ -445,8 +448,9 @@ int classifyOnline(std::string dir_path)
 		if(cv::waitKey(wait_time) >= 0)
 			break;
 	}
+	cv::startWindowThread();
 	cv::destroyAllWindows();
-	std::cout << "foo" << std::endl;
+	
 	return 0;
 }
 
@@ -491,8 +495,7 @@ int main(int argc, char *argv[])
 		else if (in.compare("8") == 0)
 		{
 			classifyOnline(forest_path);
-			std::cout << "bar" << std::endl;
-			printMenu;
+			printMenu();
 		}
 		else if (in.compare("c") == 0)
 		{

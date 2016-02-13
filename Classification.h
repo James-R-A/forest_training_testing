@@ -80,7 +80,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		/// If number of trees is small (< number of available cores) better parallel 
 		/// performance is achieved by using Classifier::TrainPar()
 		/// </summary>
-		static std::auto_ptr<Forest<F, HistogramAggregator> > Train(
+		static std::unique_ptr<Forest<F, HistogramAggregator> > Train(
 			const DataPointCollection& trainingData,
 			const TrainingParameters& TrainingParameters) // where F : IFeatureResponse
 		{
@@ -98,12 +98,12 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 			
 
 			#if defined(_OPENMP)
-				std::auto_ptr<Forest<F, HistogramAggregator> > forest
+				std::unique_ptr<Forest<F, HistogramAggregator> > forest
 					= ForestTrainer<F, HistogramAggregator>::ParallelTrainForest(
 						random, TrainingParameters, classificationContext,
 						trainingData, &progress_stream);
 			#else
-				std::auto_ptr<Forest<F, HistogramAggregator> > forest
+				std::unique_ptr<Forest<F, HistogramAggregator> > forest
 					= ForestTrainer<F, HistogramAggregator>::TrainForest(
 						random, TrainingParameters, classificationContext, trainingData, &progress_stream);
 			#endif
@@ -116,7 +116,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		/// If OpenMP is compiled, this function parallelises by evaluating node responses in parallel
 		/// training one tree at a time.
 		/// </summary>
-		static std::auto_ptr<Forest<F, HistogramAggregator> > TrainPar(
+		static std::unique_ptr<Forest<F, HistogramAggregator> > TrainPar(
 			const DataPointCollection& trainingData,
 			const TrainingParameters& TrainingParameters) // where F : IFeatureResponse
 		{
@@ -133,7 +133,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 			if (TrainingParameters.Verbose)
 				progress_stream.makeVerbose();
 
-			std::auto_ptr<Forest<F, HistogramAggregator> > forest = ParallelForestTrainer<F, HistogramAggregator>::TrainForest(
+			std::unique_ptr<Forest<F, HistogramAggregator> > forest = ParallelForestTrainer<F, HistogramAggregator>::TrainForest(
 				random, TrainingParameters, classificationContext, trainingData, &progress_stream);
 
 			return forest;

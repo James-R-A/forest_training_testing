@@ -256,7 +256,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
     /// <param name="parameters">Training parameters.</param>
     /// <param name="data">The training data.</param>
     /// <returns>A new decision tree.</returns>
-    static std::auto_ptr<Tree<F, S> > TrainTree(
+    static std::unique_ptr<Tree<F, S> > TrainTree(
       Random& random,
       ITrainingContext<F, S>& context,
       const TrainingParameters& parameters,
@@ -269,7 +269,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
       TreeTrainingOperation<F, S> trainingOperation(random, context, parameters, data, *progress);
 
-      std::auto_ptr<Tree<F, S> > tree = std::auto_ptr<Tree<F, S> >(new Tree<F,S>(parameters.MaxDecisionLevels));
+      std::unique_ptr<Tree<F, S> > tree = std::unique_ptr<Tree<F, S> >(new Tree<F,S>(parameters.MaxDecisionLevels));
 
       (*progress)[Verbose] << std::endl;
 
@@ -300,7 +300,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
     /// the training problem, e.g. classification, density estimation, etc. </param>
     /// <param name="data">The training data.</param>
     /// <returns>A new decision forest.</returns>
-    static std::auto_ptr<Forest<F,S> > TrainForest(
+    static std::unique_ptr<Forest<F,S> > TrainForest(
       Random& random,
       const TrainingParameters& parameters,
       ITrainingContext<F,S>& context,
@@ -311,21 +311,21 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       if(progress==0)
         progress=&defaultProgress;
 
-      std::auto_ptr<Forest<F,S> > forest = std::auto_ptr<Forest<F,S> >(new Forest<F,S>());
+      std::unique_ptr<Forest<F,S> > forest = std::unique_ptr<Forest<F,S> >(new Forest<F,S>());
 
       for (int t = 0; t < parameters.NumberOfTrees; t++)
       {
         (*progress)[Interest] << "\rTraining tree "<< t << "...";
 
-        std::auto_ptr<Tree<F, S> > tree = TreeTrainer<F, S>::TrainTree(random, context, parameters, data, progress);
-        forest->AddTree(tree);
+        std::unique_ptr<Tree<F, S> > tree = TreeTrainer<F, S>::TrainTree(random, context, parameters, data, progress);
+        forest->AddTree(std::move(tree));
       }
       (*progress)[Interest] << "\rTrained " << parameters.NumberOfTrees << " trees.         " << std::endl;
 
       return forest;
     }
 
-	static std::auto_ptr<Forest<F, S> > ParallelTrainForest(
+	static std::unique_ptr<Forest<F, S> > ParallelTrainForest(
 		Random& random,
 		const TrainingParameters& parameters,
 		ITrainingContext<F, S>& context,
@@ -342,7 +342,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		else if (maxThreads > omp_get_max_threads())
 			maxThreads = omp_get_max_threads();
 
-		std::auto_ptr<Forest<F, S> > forest;
+		std::unique_ptr<Forest<F, S> > forest;
 
 		if (maxThreads == 1)
 		{
@@ -352,7 +352,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 		{
 			int current_num_threads = 0;
 			
-			forest = std::auto_ptr<Forest<F, S> >(new Forest<F, S>());
+			forest = std::unique_ptr<Forest<F, S> >(new Forest<F, S>());
 
 			omp_lock_t writelock;
 			omp_init_lock(&writelock);
@@ -360,11 +360,11 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 			#pragma omp parallel for num_threads(maxThreads)
 				for (int t = 0; t < parameters.NumberOfTrees; t++)
 				{
-					std::auto_ptr<Tree<F, S> > tree = TreeTrainer<F, S>::TrainTree(random,
+					std::unique_ptr<Tree<F, S> > tree = TreeTrainer<F, S>::TrainTree(random,
 						context, parameters, data, progress);
 
 					omp_set_lock(&writelock);
-					forest->AddTree(tree);
+					forest->AddTree(std::move(tree));
 					omp_unset_lock(&writelock);
 				}
 				omp_destroy_lock(&writelock);
