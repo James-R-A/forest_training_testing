@@ -27,10 +27,10 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
     
   public:
-	  
+    
     typedef typename std::vector< Tree<F,S>* >::size_type TreeIndex;
 
-	std::vector< Tree<F, S>* > trees_;
+  std::vector< Tree<F, S>* > trees_;
 
     ~Forest()
     {
@@ -140,8 +140,8 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
     /// <summary>
     /// Access the specified tree.
-	/// Beware, this transfers ownership of the auto_ptr to the tree
-	/// trees_[index] will be null after calling this function.
+  /// Beware, this transfers ownership of the auto_ptr to the tree
+  /// trees_[index] will be null after calling this function.
     /// </summary>
     /// <param name="index">A zero-based integer index.</param>
     /// <returns>The tree.</returns>
@@ -152,8 +152,8 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
     /// <summary>
     /// Access the specified tree.
-	/// Beware, this transfers ownership of the auto_ptr to the tree
-	/// trees_[index] will be null after calling this function.
+  /// Beware, this transfers ownership of the auto_ptr to the tree
+  /// trees_[index] will be null after calling this function.
     /// </summary>
     /// <param name="index">A zero-based integer index.</param>
     /// <returns>The tree.</returns>
@@ -162,20 +162,20 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       return *trees_[index];
     }
 
-	/// <summary>
-	/// Access the specified tree.
-	/// The other access methods result in the auto_ptr to the tree going
-	/// out of scope. This does not.
-	/// </summary>
-	/// <param name="index">A zero-based integer index.</param>
-	/// <returns>A shared pointer to the tree.</returns>
-	std::shared_ptr<Tree<F, S> > GetTreeShared(int index)
-	{
-		std::shared_ptr<Tree<F, S> > sp1(nullptr);
-		sp1 = std::make_shared<Tree<F, S> >(*trees_[index]);
-		
-		return sp1;
-	}
+  /// <summary>
+  /// Access the specified tree.
+  /// The other access methods result in the auto_ptr to the tree going
+  /// out of scope. This does not.
+  /// </summary>
+  /// <param name="index">A zero-based integer index.</param>
+  /// <returns>A shared pointer to the tree.</returns>
+  std::shared_ptr<Tree<F, S> > GetTreeShared(int index)
+  {
+    std::shared_ptr<Tree<F, S> > sp1(nullptr);
+    sp1 = std::make_shared<Tree<F, S> >(*trees_[index]);
+    
+    return sp1;
+  }
 
     /// <summary>
     /// How many trees in the forest?

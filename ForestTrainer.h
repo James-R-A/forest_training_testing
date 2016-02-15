@@ -325,52 +325,52 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       return forest;
     }
 
-	static std::unique_ptr<Forest<F, S> > ParallelTrainForest(
-		Random& random,
-		const TrainingParameters& parameters,
-		ITrainingContext<F, S>& context,
-		const IDataPointCollection& data,
-		ProgressStream* progress = 0)
-	{
-		ProgressStream defaultProgress(std::cout, parameters.Verbose ? Verbose : Interest);
-		if (progress == 0)
-			progress = &defaultProgress;
+  static std::unique_ptr<Forest<F, S> > ParallelTrainForest(
+    Random& random,
+    const TrainingParameters& parameters,
+    ITrainingContext<F, S>& context,
+    const IDataPointCollection& data,
+    ProgressStream* progress = 0)
+  {
+    ProgressStream defaultProgress(std::cout, parameters.Verbose ? Verbose : Interest);
+    if (progress == 0)
+      progress = &defaultProgress;
 
-		int maxThreads = parameters.max_threads;
-		if (omp_get_max_threads() == 1 || maxThreads < 1)
-			maxThreads = 1;
-		else if (maxThreads > omp_get_max_threads())
-			maxThreads = omp_get_max_threads();
+    int maxThreads = parameters.max_threads;
+    if (omp_get_max_threads() == 1 || maxThreads < 1)
+      maxThreads = 1;
+    else if (maxThreads > omp_get_max_threads())
+      maxThreads = omp_get_max_threads();
 
-		std::unique_ptr<Forest<F, S> > forest;
+    std::unique_ptr<Forest<F, S> > forest;
 
-		if (maxThreads == 1)
-		{
-			forest = ForestTrainer<F, S>::TrainForest(random, parameters, context, data, progress);
-		}
-		else
-		{
-			int current_num_threads = 0;
-			
-			forest = std::unique_ptr<Forest<F, S> >(new Forest<F, S>());
+    if (maxThreads == 1)
+    {
+      forest = ForestTrainer<F, S>::TrainForest(random, parameters, context, data, progress);
+    }
+    else
+    {
+      int current_num_threads = 0;
+      
+      forest = std::unique_ptr<Forest<F, S> >(new Forest<F, S>());
 
-			omp_lock_t writelock;
-			omp_init_lock(&writelock);
+      omp_lock_t writelock;
+      omp_init_lock(&writelock);
 
-			#pragma omp parallel for num_threads(maxThreads)
-				for (int t = 0; t < parameters.NumberOfTrees; t++)
-				{
-					std::unique_ptr<Tree<F, S> > tree = TreeTrainer<F, S>::TrainTree(random,
-						context, parameters, data, progress);
+      #pragma omp parallel for num_threads(maxThreads)
+        for (int t = 0; t < parameters.NumberOfTrees; t++)
+        {
+          std::unique_ptr<Tree<F, S> > tree = TreeTrainer<F, S>::TrainTree(random,
+            context, parameters, data, progress);
 
-					omp_set_lock(&writelock);
-					forest->AddTree(std::move(tree));
-					omp_unset_lock(&writelock);
-				}
-				omp_destroy_lock(&writelock);
-		}
+          omp_set_lock(&writelock);
+          forest->AddTree(std::move(tree));
+          omp_unset_lock(&writelock);
+        }
+        omp_destroy_lock(&writelock);
+    }
 
-		return forest;
-	}
+    return forest;
+  }
   };
 } } }

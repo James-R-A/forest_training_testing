@@ -3,10 +3,10 @@
 #include "FeatureResponseFunctions.h"
 
 namespace MicrosoftResearch {
-	namespace Cambridge {
-		namespace Sherwood
-		{
+    namespace Cambridge {
+        namespace Sherwood
+        {
 
-		}
-	}
+        }
+    }
 }

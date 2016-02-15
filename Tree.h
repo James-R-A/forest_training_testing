@@ -73,12 +73,12 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
       std::vector<float> responses_(data.Count());
 
-	  // This doesn't really utilise cores for a lot of the time, try separating image into 6-8 sections then recombining?
-	  #if defined(_OPENMP)
-		ApplyNodeParallel(0, data, dataIndices_, 0, data.Count(), leafNodeIndices, responses_);
-	  #else
-		ApplyNode(0, data, dataIndices_, 0, data.Count(), leafNodeIndices, responses_);
-	  #endif
+    // This doesn't really utilise cores for a lot of the time, try separating image into 6-8 sections then recombining?
+    #if defined(_OPENMP)
+    ApplyNodeParallel(0, data, dataIndices_, 0, data.Count(), leafNodeIndices, responses_);
+    #else
+    ApplyNode(0, data, dataIndices_, 0, data.Count(), leafNodeIndices, responses_);
+    #endif
     }
 
     void Serialize(std::ostream& o) const
@@ -277,10 +277,10 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       if (i0 == i1)   // No samples left
         return;
 
-	  for (int i = i0; i < i1; i++)
-	  {
-		  responses_[i] = node.Feature.GetResponse(data, dataIndices[i]);
-	  }
+    for (int i = i0; i < i1; i++)
+    {
+      responses_[i] = node.Feature.GetResponse(data, dataIndices[i]);
+    }
 
       int ii = Partition(responses_, dataIndices, i0, i1, node.Threshold);
 
@@ -289,42 +289,42 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       ApplyNode(nodeIndex * 2 + 2, data, dataIndices, ii, i1, leafNodeIndices, responses_);
     }
 
-	void ApplyNodeParallel(
-		int nodeIndex,
-		const IDataPointCollection& data,
-		std::vector<unsigned int>& dataIndices,
-		int i0,
-		int i1,
-		std::vector<int>& leafNodeIndices,
-		std::vector<float>& responses_)
-	{
-		assert(nodes_[nodeIndex].IsNull() == false);
+  void ApplyNodeParallel(
+    int nodeIndex,
+    const IDataPointCollection& data,
+    std::vector<unsigned int>& dataIndices,
+    int i0,
+    int i1,
+    std::vector<int>& leafNodeIndices,
+    std::vector<float>& responses_)
+  {
+    assert(nodes_[nodeIndex].IsNull() == false);
 
-		Node<F, S>& node = nodes_[nodeIndex];
+    Node<F, S>& node = nodes_[nodeIndex];
 
-		if (node.IsLeaf())
-		{
-			for (int i = i0; i < i1; i++)
-				leafNodeIndices[dataIndices[i]] = nodeIndex;
-			return;
-		}
+    if (node.IsLeaf())
+    {
+      for (int i = i0; i < i1; i++)
+        leafNodeIndices[dataIndices[i]] = nodeIndex;
+      return;
+    }
 
-		if (i0 == i1)   // No samples left
-			return;
+    if (i0 == i1)   // No samples left
+      return;
 
     int max_threads = omp_get_max_threads();
-		#pragma omp parallel for num_threads(max_threads)
-		for (int i = i0; i < i1; i++)
-		{
-			responses_[i] = node.Feature.GetResponse(data, dataIndices[i]);
-		}
+    #pragma omp parallel for num_threads(max_threads)
+    for (int i = i0; i < i1; i++)
+    {
+      responses_[i] = node.Feature.GetResponse(data, dataIndices[i]);
+    }
 
-		int ii = Partition(responses_, dataIndices, i0, i1, node.Threshold);
+    int ii = Partition(responses_, dataIndices, i0, i1, node.Threshold);
 
-		// Recurse for child nodes.
-		ApplyNodeParallel(nodeIndex * 2 + 1, data, dataIndices, i0, ii, leafNodeIndices, responses_);
-		ApplyNodeParallel(nodeIndex * 2 + 2, data, dataIndices, ii, i1, leafNodeIndices, responses_);
-	}
+    // Recurse for child nodes.
+    ApplyNodeParallel(nodeIndex * 2 + 1, data, dataIndices, i0, ii, leafNodeIndices, responses_);
+    ApplyNodeParallel(nodeIndex * 2 + 2, data, dataIndices, ii, i1, leafNodeIndices, responses_);
+  }
   };
 
   template<class F, class S>

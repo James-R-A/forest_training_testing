@@ -116,17 +116,17 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
     progress_(progress)
     {
       parameters_ = parameters;
-	  maxThreads_ = parameters.max_threads;
+    maxThreads_ = parameters.max_threads;
       indices_ .resize(data.Count());
       for (DataPointIndex i = 0; i < indices_.size(); i++)
         indices_[i] = i;
 
-	  parentStatistics_ = trainingContext_.GetStatisticsAggregator();
+    parentStatistics_ = trainingContext_.GetStatisticsAggregator();
 
-	  leftChildStatistics_ = trainingContext_.GetStatisticsAggregator();
-	  rightChildStatistics_ = trainingContext_.GetStatisticsAggregator();
+    leftChildStatistics_ = trainingContext_.GetStatisticsAggregator();
+    rightChildStatistics_ = trainingContext_.GetStatisticsAggregator();
 
-	  responses_.resize(data.Count());
+    responses_.resize(data.Count());
 
       threadLocalData_.resize(maxThreads_);
       for (int threadIndex = 0; threadIndex < maxThreads_; threadIndex++)
@@ -141,7 +141,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
       // First aggregate statistics over the samples at the parent node
       parentStatistics_.Clear();
-	  for (DataPointIndex i = i0; i < i1; i++)
+    for (DataPointIndex i = i0; i < i1; i++)
         parentStatistics_.Aggregate(data_, indices_[i]);
 
       // Copy parent statistics to thread local storage in case client IStatisticsAggregator implementations are not reentrant
@@ -392,7 +392,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         progress=&defaultProgress;
 
       std::unique_ptr<Forest<F,S> > forest = std::unique_ptr<Forest<F,S> >(new Forest<F,S>());
-	  	  
+        
       for (int t = 0; t < parameters.NumberOfTrees; t++)
       {
         (*progress)[Interest] << "\rTraining tree "<< t << "...";

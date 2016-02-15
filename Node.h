@@ -10,7 +10,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
   // StatisticsAggregator types are in Serialize.h
   // If your implementations are not simple value types then use 
   // explicit template instantiation to override.
-	
+  
   /// <summary>
   /// One node in a decision tree.
   /// </summary>

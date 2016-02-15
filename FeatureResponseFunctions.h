@@ -19,107 +19,107 @@
 
 
 namespace MicrosoftResearch {
-	namespace Cambridge {
-		namespace Sherwood
-		{
-			class Random;
-			
-			// Generate a normal distributed number given a uniform random number generator
-			// Box-muller transform.
-			static float randn(Random& random)
-			{
-				float u = (2 * random.NextDouble()) - 1;
-				float v = (2 * random.NextDouble()) - 1;
-				float w = u * u + v * v;
+    namespace Cambridge {
+        namespace Sherwood
+        {
+            class Random;
+            
+            // Generate a normal distributed number given a uniform random number generator
+            // Box-muller transform.
+            static float randn(Random& random)
+            {
+                float u = (2 * random.NextDouble()) - 1;
+                float v = (2 * random.NextDouble()) - 1;
+                float w = u * u + v * v;
 
-				if (w == 0 || w > 1) 
-					return randn(random);
+                if (w == 0 || w > 1) 
+                    return randn(random);
 
-				float x = sqrt(-2 * log(w) / w);
-				return u * x;
-			}
+                float x = sqrt(-2 * log(w) / w);
+                return u * x;
+            }
 
-			/// <summary>	f(x,n) = Sum(n*p(x)) where n is a randomly generated integer,
-			///				and p(x) is a pixel in the patch surrounding pixel x. patch size^2 = dimensions</summary>
-			class RandomHyperplaneFeatureResponse
-			{
-			public:
-				unsigned dimensions;
-				std::vector<float> n;
-				std::vector<cv::Point> offset;
+            /// <summary>   f(x,n) = Sum(n*p(x)) where n is a randomly generated integer,
+            ///             and p(x) is a pixel in the patch surrounding pixel x. patch size^2 = dimensions</summary>
+            class RandomHyperplaneFeatureResponse
+            {
+            public:
+                unsigned dimensions;
+                std::vector<float> n;
+                std::vector<cv::Point> offset;
 
-				RandomHyperplaneFeatureResponse() {
-					dimensions = 0;
-				}
+                RandomHyperplaneFeatureResponse() {
+                    dimensions = 0;
+                }
 
-				RandomHyperplaneFeatureResponse(Random& random,
-					unsigned int dimensions)
-					: dimensions(dimensions)
-				{
+                RandomHyperplaneFeatureResponse(Random& random,
+                    unsigned int dimensions)
+                    : dimensions(dimensions)
+                {
 
-					n.resize(dimensions);
-					offset.resize(dimensions);
+                    n.resize(dimensions);
+                    offset.resize(dimensions);
 
-					int ub = (int)((sqrt(dimensions) -1) / 2);
-					int lb = 0 - ub;
-					// Normal distributed numbers to gives an unbiased random unit vector.
-					for (unsigned int c = 0; c < dimensions; c++) {
-						n[c] = randn(random);
-					}
+                    int ub = (int)((sqrt(dimensions) -1) / 2);
+                    int lb = 0 - ub;
+                    // Normal distributed numbers to gives an unbiased random unit vector.
+                    for (unsigned int c = 0; c < dimensions; c++) {
+                        n[c] = randn(random);
+                    }
 
-					int i = 0;
-					for (int r = lb; r <= ub; r++)
-					{
-						for (int c = lb; c <= ub; c++)
-						{
-							offset[i] = cv::Point(c, r);
-							i++;
-						}
-					}
+                    int i = 0;
+                    for (int r = lb; r <= ub; r++)
+                    {
+                        for (int c = lb; c <= ub; c++)
+                        {
+                            offset[i] = cv::Point(c, r);
+                            i++;
+                        }
+                    }
 
-				}
+                }
 
-				static RandomHyperplaneFeatureResponse CreateRandom(Random& random, unsigned int dimensions);
+                static RandomHyperplaneFeatureResponse CreateRandom(Random& random, unsigned int dimensions);
 
-				// IFeatureResponse implementation
-				float GetResponse(const IDataPointCollection& data, unsigned int index) const;
+                // IFeatureResponse implementation
+                float GetResponse(const IDataPointCollection& data, unsigned int index) const;
 
-			};
+            };
 
-			/// <summary>	f(x,u,v) = I(x+u) - I(x+v) where x is the evaluated pixel in image I
-			///				and u and v are random 2-d pixel offsets within (sqrt(dimension)-1)/2 
-			///				of the pixel being evaluated. (equiv to (patch_size-1)/2)  </summary>
-			class PixelSubtractionResponse
-			{
-			public:
-				unsigned dimensions;
-				std::vector<cv::Point> offset;
+            /// <summary>   f(x,u,v) = I(x+u) - I(x+v) where x is the evaluated pixel in image I
+            ///             and u and v are random 2-d pixel offsets within (sqrt(dimension)-1)/2 
+            ///             of the pixel being evaluated. (equiv to (patch_size-1)/2)  </summary>
+            class PixelSubtractionResponse
+            {
+            public:
+                unsigned dimensions;
+                cv::Point offset_0;
+                cv::Point offset_1;
 
-				PixelSubtractionResponse() {
-					dimensions = 0;
-					offset.resize(2);
-				}
+                PixelSubtractionResponse() {
+                    dimensions = 0;
+                    offset_0 = cv::Point(0,0);
+                    offset_1 = cv::Point(0,0);
+                }
 
-				PixelSubtractionResponse(Random& random,
-					unsigned int dimensions)
-					: dimensions(dimensions)
-				{
-					offset.resize(2);
+                PixelSubtractionResponse(Random& random,
+                    unsigned int dimensions)
+                    : dimensions(dimensions)
+                {
+                    
+                    int ub = (int)ceil(sqrt(dimensions) / 2);
+                    int lb = 0 - ub;
 
-					int ub = (int)ceil(sqrt(dimensions) / 2);
-					int lb = 0 - ub;
+                    offset_0 = cv::Point(random.Next(lb,ub), random.Next(lb,ub));
+                    offset_1 = cv::Point(random.Next(lb,ub), random.Next(lb,ub));
+                }
 
-					for (unsigned int c = 0; c < 2; c++) {
-						offset[c] = cv::Point(random.Next(lb,ub), random.Next(lb,ub));
-					}
-				}
+                static PixelSubtractionResponse CreateRandom(Random& random, unsigned int dimensions);
+                
+                // IFeatureResponse implementation
+                float GetResponse(const IDataPointCollection& data, unsigned int index) const;
 
-				static PixelSubtractionResponse CreateRandom(Random& random, unsigned int dimensions);
-				
-				// IFeatureResponse implementation
-				float GetResponse(const IDataPointCollection& data, unsigned int index) const;
-
-			};
-		}
-	}
+            };
+        }
+    }
 }
