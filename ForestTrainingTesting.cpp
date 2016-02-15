@@ -17,11 +17,12 @@ using namespace std;
 using namespace MicrosoftResearch::Cambridge::Sherwood;
 
 #define LOOP_DELAY 30
-#define DEF_TREES 1
+#define DEF_TREES 3
 #define DEF_CAND_FEAT 10
 #define DEF_THRESH 10
 #define DEF_REG_LEVELS 20
-#define DEF_CLASS_LEVELS 5
+#define DEF_CLASS_LEVELS 22
+#define DEF_BINS 5
 #define RHFR_FLAG false
 #define PSR_FLAG true
 
@@ -160,6 +161,9 @@ int trainRegression(std::string path,
 
 int trainClassificationPar(std::string path,
     std::string save_path,
+    int training_images,
+    int depth_bins = DEF_BINS,
+    bool verbose_ = false,
     int number_of_trees = DEF_TREES,
     int candidate_features = DEF_CAND_FEAT,
     int thresholds_per_feature = DEF_THRESH,
@@ -177,14 +181,14 @@ int trainClassificationPar(std::string path,
     training_parameters.MaxDecisionLevels = max_decision_levels;
     training_parameters.NumberOfCandidateFeatures = candidate_features;
     training_parameters.NumberOfCandidateThresholdsPerFeature = thresholds_per_feature;
-    training_parameters.Verbose = true;
+    training_parameters.Verbose = verbose_;
     training_parameters.max_threads = omp_get_max_threads();
 
     std::string file_path = path;
     std::cout << "Searching for some IR and depth images in " << file_path << std::endl;
     std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesClass(file_path,
         cv::Size(640, 480),
-        false, 10, 0, 5);
+        false, training_images, 0, depth_bins);
 
     std::cout << "Data loaded here's how many samples: " << training_data->Count() << std::endl;
     std::cout << " each with dimensionality: " << training_data->Dimensions() << std::endl;
@@ -234,6 +238,10 @@ int trainClassificationPar(std::string path,
 
 int trainRegressionPar(std::string path,
     std::string save_path,
+    int training_images,
+    int depth_bins = DEF_BINS,
+    int expert_class_no = -1,
+    bool verbose_ = false,
     int number_of_trees = DEF_TREES,
     int candidate_features = DEF_CAND_FEAT,
     int thresholds_per_feature = DEF_THRESH,
@@ -250,7 +258,7 @@ int trainRegressionPar(std::string path,
     training_parameters.MaxDecisionLevels = max_decision_levels;
     training_parameters.NumberOfCandidateFeatures = candidate_features;
     training_parameters.NumberOfCandidateThresholdsPerFeature = thresholds_per_feature;
-    training_parameters.Verbose = true;
+    training_parameters.Verbose = verbose_;
     training_parameters.max_threads = omp_get_max_threads();
 
     // init the file path
@@ -259,7 +267,7 @@ int trainRegressionPar(std::string path,
     // create a DataPointCollection in the regression format
     std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesRegression(file_path,
         cv::Size(640, 480),
-        false, 10, 0, 5, true, 1);
+        false, training_images, 0, depth_bins, true, expert_class_no);
 
     std::cout << "Data loaded here's how many samples: " << training_data->Count() << std::endl;
     std::cout << " each with dimensionality: " << training_data->Dimensions() << std::endl;
@@ -518,12 +526,12 @@ int main(int argc, char *argv[])
         }
         else if (in.compare("1") == 0)
         {
-            trainClassificationPar(FILE_PATH, forest_path);
+            trainClassificationPar(FILE_PATH, forest_path, 100);
             printMenu();
         }
         else if (in.compare("2") == 0)
         {
-            trainRegressionPar(FILE_PATH, forest_path);
+            trainRegressionPar(FILE_PATH, forest_path, 100);
             printMenu();
         }
         else if (in.compare("q") == 0)
