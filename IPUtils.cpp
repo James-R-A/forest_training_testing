@@ -252,11 +252,15 @@ bool dirExists(const std::string& dirName_in)
 {
     unsigned long ftyp = GetFileAttributesA(dirName_in.c_str());
     if (ftyp == INVALID_FILE_ATTRIBUTES)
+    {
+        std::cout << "Directory not found: " << dirName_in << std::endl;
         return false;  //something is wrong with your path!
+    }
 
     if (ftyp & FILE_ATTRIBUTE_DIRECTORY)
         return true;   // this is a directory!
 
+    std::cout << "Directory not found: " << dirName_in << std::endl;
     return false;    // this is not a directory!
 }
 #endif
@@ -269,6 +273,9 @@ bool IPUtils::dirExists(const std::string& dirName_in)
     if(stat(dirName_carr, &st)==0)
         is_dir = S_ISDIR(st.st_mode);
 
+    if(!is_dir)
+        std::cout << "Directory not found: " << dirName_in << std::endl;
+    
     return is_dir;
 }
 #endif

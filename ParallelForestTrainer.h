@@ -116,7 +116,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
     progress_(progress)
     {
       parameters_ = parameters;
-    maxThreads_ = parameters.max_threads;
+    maxThreads_ = parameters.MaxThreads;
       indices_ .resize(data.Count());
       for (DataPointIndex i = 0; i < indices_.size(); i++)
         indices_[i] = i;

@@ -336,7 +336,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
     if (progress == 0)
       progress = &defaultProgress;
 
-    int maxThreads = parameters.max_threads;
+    int maxThreads = parameters.MaxThreads;
     if (omp_get_max_threads() == 1 || maxThreads < 1)
       maxThreads = 1;
     else if (maxThreads > omp_get_max_threads())
