@@ -44,13 +44,22 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
   public:
     enum e
     {
-      Classification = 0x0,
-      Regression = 0x1,
-      ExpertRegressor = 0x2,
-      All = 0x4
+      Classification = 0,
+      Regression = 1,
+      ExpertRegressor = 2,
+      All = 3
     };
   };
 
+  class SplitFunctionDescriptor
+  {
+  public:
+    enum e
+    {
+      PixelDifference = 0,
+      RandomHyperplane = 1
+    };
+  };
   ///<summary>
   /// Program params
   ///</summary>
@@ -60,22 +69,33 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
     TrainingParameters Tpr;
     std::string OutputFilename;
     std::string TrainingImagesPath;
+    std::string InputPrefix;
     int NumberTrainingImages;
     int TrainingImagesStart;
     ForestDescriptor::e ForestType;
+    SplitFunctionDescriptor::e SplitFunctionType;
     int ExpertClassNo;
     bool DepthRaw;
     int PatchSize;
     int Bins;
+    int ImgHeight;
+    int ImgWidth;
 
     ProgramParameters()
     {
       OutputFilename = "default";
-      TrainingImagesPath = ".";
-      ExpertClassNo = -1;
+      TrainingImagesPath = "/media/james/data_wd";
+      InputPrefix = "test";
+      NumberTrainingImages = 10;
+      TrainingImagesStart = 0;
       ForestType = ForestDescriptor::Classification;
+      SplitFunctionType = SplitFunctionDescriptor::PixelDifference;
+      ExpertClassNo = -1;
       DepthRaw = false;
+      PatchSize = 25;
       Bins = 5;
+      ImgHeight = 480;
+      ImgWidth = 640;
     }
 
     bool setParam(std::string parameter, std::string value)
@@ -195,6 +215,33 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         Tpc.MaxThreads = n;
         Tpr.MaxThreads = n;
       }
+      else if(parameter.compare("SPLIT_FUNCTION")==0)
+      {
+        if(value.compare("PIXEL_DIFFERENCE") == 0)
+          SplitFunctionType = SplitFunctionDescriptor::PixelDifference;
+        else if(value.compare("RANDOM_HYPERPLANE")==0)
+          SplitFunctionType = SplitFunctionDescriptor::RandomHyperplane;
+        else
+          throw std::runtime_error("Invalid value for SPLIT_FUNCTION, accepted values are PIXEL_DIFFERENCE and RANDOM_HYPERPLANE");
+      }
+      else if(parameter.compare("FOREST_OUTPUT")==0)
+      {
+        OutputFilename = value;
+      }
+      else if(parameter.compare("INPUT_PREFIX")==0)
+      {
+        InputPrefix = value;
+      }
+      else if(parameter.compare("IMG_WIDTH") == 0)
+      {
+        int n= std::stoi(value);
+        ImgWidth = n;
+      }
+      else if(parameter.compare("IMG_HEIGHT") == 0)
+      {
+        int n= std::stoi(value);
+        ImgHeight = n;
+      }
       else
         return false;
 
@@ -203,17 +250,33 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
     void prettyPrint()
     {
+      std::string forestTypes [] = {"Classification", "Regression", "ExpertRegressor", "All"};
+      std::string splitTypes [] = {"Pixel Difference Response", "Random Hyperplane Response"};
 
       std::cout << "Program Parameters:" << std::endl;
       std::cout << std::endl;
-      std::cout << "Training images path: \t" << TrainingImagesPath << std::endl;
-      std::cout << "Forest output: \t" << OutputFilename << std::endl;
-      std::cout << "NumberTrainingImages: \t" << to_string(NumberTrainingImages) << std::endl;
-      std::cout << "Starting at image: \t" << to_string(TrainingImagesStart) << std::endl;
-      std::cout << "Number of bins: \t" << to_string(Bins) << std::endl;
-      std::cout << "Depth Raw" << std::endl;
-      std::cout <<  << std::endl;
-      std::cout <<  << std::endl;
+      std::cout << "Forest Type: \t\t\t" << forestTypes[ForestType] << std::endl;
+      std::cout << "Split Function Type: \t\t" << splitTypes[SplitFunctionType] << std::endl;
+      std::cout << "Number of bins: \t\t" << std::to_string(Bins) << std::endl;
+      std::cout << "Training images path: \t\t" << TrainingImagesPath << std::endl;
+      std::cout << "Training images file prefix: \t" << InputPrefix << std::endl;
+      std::cout << "NumberTrainingImages: \t\t" << std::to_string(NumberTrainingImages) << std::endl;
+      std::cout << "Starting at image: \t\t" << std::to_string(TrainingImagesStart) << std::endl;
+      std::string dr = DepthRaw? "True" : "False";
+      std::cout << "Depth Raw: \t\t\t" << dr << std::endl;
+      std::cout << "Patch Size: \t\t\t" << std::to_string(PatchSize) << std::endl;
+      std::cout << "Image Width:\t\t\t" << std::to_string(ImgWidth) << std::endl;
+      std::cout << "Image Height:\t\t\t" << std::to_string(ImgHeight) << std::endl;
+      std::cout << "Forest output prefix: \t\t" << OutputFilename << std::endl;
+      std::cout << "Trees per Forest:\t\t" << std::to_string(Tpr.NumberOfTrees) <<std::endl;
+      std::cout << "Regression Decision Levels: \t" << std::to_string(Tpr.MaxDecisionLevels) << std::endl;
+      std::cout << "Classification Decision Levels:\t" << std::to_string(Tpc.MaxDecisionLevels) << std::endl;
+      std::cout << "Candidate Features: \t\t" << std::to_string(Tpr.NumberOfCandidateFeatures) << std::endl;
+      std::cout << "Thresholds per Features: \t" << std::to_string(Tpr.NumberOfCandidateThresholdsPerFeature) << std::endl;
+      std::cout << "ExpertClassNo: \t\t\t" << std::to_string(ExpertClassNo) << std::endl;
+      std::cout << "Verbose: \t\t\t" << (Tpc.Verbose? "Yes" : "no") << std::endl;
+      std::cout << "Max threads to use: \t\t" << std::to_string(Tpr.MaxThreads) << std::endl;
+
 
     }
   };

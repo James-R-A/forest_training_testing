@@ -11,7 +11,7 @@
 #include <sstream>
 
 #include "IPUtils.h"
-
+#include "TrainingParameters.h"
 #include "Interfaces.h"
 
 
@@ -72,15 +72,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         /// <param name="num_classes"> Number of classes to classify depth data </param>
         /// <param name="zero_class_label"> Is there a seperate class for zero output? </param>
         /// <param name="patch_size">Size of pixel patch to load (default 1, i.e. single pixel)</param>
-        static  std::unique_ptr<DataPointCollection> LoadImagesClass(
-            std::string path, 
-            cv::Size img_size,
-            bool depth_raw, 
-            int number, 
-            int start=0,
-            int num_classes = 5,
-            bool zero_class_label = true,
-            int patch_size = 25);
+        static  std::unique_ptr<DataPointCollection> LoadImagesClass(ProgramParameters& progParams);
 
         /// <summary>
         /// Loads a data set from a directory of IR and depth images
@@ -95,16 +87,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         /// <param name="zero_class_label"> Is there a seperate class for zero output? </param>
         /// <param name="class_number"> which class data subset to load, -1 for all </param>
         /// <param name="patch_size">Size of pixel patch to load (default 1, i.e. single pixel)</param>
-        static  std::unique_ptr<DataPointCollection> LoadImagesRegression(
-            std::string path,
-            cv::Size img_size,
-            bool depth_raw,
-            int number,
-            int start = 0,
-            int num_classes = 5,
-            bool zero_class_label = true,
-            int class_number = -1,
-            int patch_size = 25);
+        static  std::unique_ptr<DataPointCollection> LoadImagesRegression(ProgramParameters& progParams, int class_number=-1);
 
         static std::unique_ptr<DataPointCollection> LoadMat(cv::Mat, cv::Size img_size);
 

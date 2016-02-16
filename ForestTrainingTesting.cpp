@@ -27,128 +27,22 @@ const std::string FILE_PATH = "D:\\";
 const std::string FILE_PATH = "/media/james/data_wd/";
 #endif
 
-int trainClassification(std::string path,
-    std::string save_path,
-    int max_decision_levels = DEF_CLASS_LEVELS)
+int trainClassificationPar(ProgramParameters& progParams)
 {
-    
-    std::cout << "Output forest filename?\t";
-    std::string filename;
-    std::cin >> filename;
-    filename = save_path + filename;
 
-    // Setup the program training parameters
-    TrainingParameters training_parameters;
-    training_parameters.MaxDecisionLevels = max_decision_levels;
-
-    std::string file_path = path;
-    std::cout << "Searching for some IR and depth images in " << file_path << std::endl;
-    std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesClass(file_path,
-        cv::Size(640, 480),
-        false, 1, 0, 5);
-
-    std::cout << "Data loaded here's how many samples: " << training_data->Count() << std::endl;
-    std::cout << " each with dimensionality: " << training_data->Dimensions() << std::endl;
-
-    std::cout << "\nAttempting training" << std::endl;
-    try
-    {
-        std::unique_ptr<Forest<PixelSubtractionResponse, HistogramAggregator> > forest =
-            Classifier<PixelSubtractionResponse>::Train(*training_data, training_parameters);
-
-        forest->Serialize(filename);
-    }
-    catch (const std::runtime_error& e)
-    {
-        std::cout << "Training Failed" << std::endl;
-        std::cerr << e.what() << std::endl;
-    }
+    std::string filename = progParams.TrainingImagesPath + progParams.OutputFilename + "_classifier.frst";
      
-
-    std::cout << "Training complete, forest saved in :" << filename << std::endl;
-
-    return 0;
-}
-
-int trainRegression(std::string path,
-    std::string save_path,
-    int max_decision_levels = DEF_REG_LEVELS)
-{
-    std::cout << "Output forest filename?\t";
-    std::string filename;
-    std::cin >> filename;
-    filename = save_path + filename;
-
-    // Setup the program training parameters
-    TrainingParameters training_parameters;
-    training_parameters.MaxDecisionLevels = max_decision_levels;
-
-    // init the file path
-    std::string file_path = path;
-    std::cout << "Searching for some IR and depth images in " << file_path << std::endl;
-    // create a DataPointCollection in the regression format
-    std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesRegression(file_path,
-        cv::Size(640, 480),
-        false, 10);
+    std::cout << "Searching for some IR and depth images in " << progParams.TrainingImagesPath << std::endl;
+    std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesClass(progParams);
 
     std::cout << "Data loaded here's how many samples: " << training_data->Count() << std::endl;
-    std::cout << " each with dimensionality: " << training_data->Dimensions() << std::endl;
-
-    // Train a regressoin forest
-    std::cout << "\nAttempting training" << std::endl;
-    try
-    {
-        std::unique_ptr<Forest<PixelSubtractionResponse, DiffEntropyAggregator> > forest = 
-            Regressor<PixelSubtractionResponse>::Train(*training_data,training_parameters);
-
-        forest->Serialize(filename);
-        std::cout << "Training complete, forest saved in :" << filename << std::endl;
-    }
-    catch (const std::runtime_error& e)
-    {
-        std::cout << "Training Failed" << std::endl;
-        std::cerr << e.what() << std::endl;
-    }
-
-    return 0;
-
-}
-
-int trainClassificationPar(std::string path,
-    std::string save_path,
-    int training_images,
-    int max_decision_levels = DEF_CLASS_LEVELS)
-{
-
-    if (!IPUtils::dirExists(path))
-        return 0;
-
-    if (!IPUtils::dirExists(save_path))
-        return 0;
-
-    std::cout << "Output forest filename?\t";
-    std::string filename;
-    std::cin >> filename;
-    filename = save_path + filename;
-
-    // Setup the program training parameters
-    TrainingParameters training_parameters;
-    training_parameters.MaxDecisionLevels = max_decision_levels;
-    
-    std::string file_path = path;
-    std::cout << "Searching for some IR and depth images in " << file_path << std::endl;
-    std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesClass(file_path,
-        cv::Size(640, 480),
-        false, training_images, 0);
-
-    std::cout << "Data loaded here's how many samples: " << training_data->Count() << std::endl;
-    std::cout << " each with dimensionality: " << training_data->Dimensions() << std::endl;
+    std::cout << "Using dimensionality: " << training_data->Dimensions() << std::endl;
  
     std::cout << "\nAttempting training" << std::endl;
     try
     {
         std::unique_ptr<Forest<PixelSubtractionResponse, HistogramAggregator> > forest = 
-            Classifier<PixelSubtractionResponse>::TrainPar(*training_data, training_parameters);
+            Classifier<PixelSubtractionResponse>::TrainPar(*training_data, progParams.Tpc);
 
         forest->Serialize(filename);
     }
@@ -163,34 +57,15 @@ int trainClassificationPar(std::string path,
     return 0;
 }
 
-int trainRegressionPar(std::string path,
-    std::string save_path,
-    int training_images,
-    int max_decision_levels = DEF_REG_LEVELS)
+int trainRegressionPar(ProgramParameters& progParams, int class_expert_no = -1)
 {
+    std::string file_suffix = (class_expert_no == -1)? "_expert.frst" : "_regressor.frst";
+    std::string filename = progParams.TrainingImagesPath + progParams.OutputFilename + file_suffix;
 
-    if (!IPUtils::dirExists(path))
-        return 0;
-
-    if (!IPUtils::dirExists(save_path))
-        return 0;
-
-    std::cout << "Output forest filename?\t";
-    std::string filename;
-    std::cin >> filename;
-    filename = save_path + filename;
-
-    // Setup the program training parameters
-    TrainingParameters training_parameters;
-    training_parameters.MaxDecisionLevels = max_decision_levels;
-    
-    // init the file path
-    std::string file_path = path;
-    std::cout << "Searching for some IR and depth images in " << file_path << std::endl;
+     
+    std::cout << "Searching for some IR and depth images in " << progParams.TrainingImagesPath << std::endl;
     // create a DataPointCollection in the regression format
-    std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesRegression(file_path,
-        cv::Size(640, 480),
-        false, training_images, 0); // TODO change
+    std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesRegression(progParams, class_expert_no); // TODO change
 
     std::cout << "Data loaded here's how many samples: " << training_data->Count() << std::endl;
     std::cout << " each with dimensionality: " << training_data->Dimensions() << std::endl;
@@ -200,7 +75,7 @@ int trainRegressionPar(std::string path,
     try
     {
         std::unique_ptr<Forest<PixelSubtractionResponse, DiffEntropyAggregator> > forest =
-            Regressor<PixelSubtractionResponse>::TrainPar(*training_data, training_parameters);
+            Regressor<PixelSubtractionResponse>::TrainPar(*training_data, progParams.Tpr);
 
         forest->Serialize(filename);
         std::cout << "Training complete, forest saved in :" << filename << std::endl;
@@ -214,6 +89,7 @@ int trainRegressionPar(std::string path,
     return 0;
 }
 
+/*
 int testMethod(std::string dir_path)
 {
     if (!IPUtils::dirExists(dir_path))
@@ -279,7 +155,7 @@ int testMethod(std::string dir_path)
     return 0;
 
 }
-
+*/
 int regressOnline(std::string dir_path)
 {
     if (!IPUtils::dirExists(dir_path))
@@ -395,18 +271,21 @@ int trainExperts(std::string path, std::string save_path, std::string save_prefi
     }
 }
 
+int growSomeForests(ProgramParameters& progParams)
+{
+    
+}
+
 void printMenu()
 {
     std::cout << "*************************Forest training and testing*************************";
     std::cout << std::endl;
-    std::cout << "Enter 6 to compare a depth image and classified image" << std::endl;
-    std::cout << "Enter 7 to test Regression Forest" << std::endl;
-    std::cout << "Enter 8 to test Classification Forest" << std::endl;
-    // std::cout << "Enter r to train Regression Forest" << std::endl;
-    // std::cout << "Enter c to train Classification Forest" << std::endl;
     std::cout << "Enter 1 to train Classification Forest in parallel" << std::endl;
     std::cout << "Enter 2 to train Regression Forest in parallel" << std::endl;
     std::cout << "Enter 3 to train Expert Regressors" << std::endl;
+    std::cout << "Enter 6 to compare a depth image and classified image" << std::endl;
+    std::cout << "Enter 7 to test Regression Forest" << std::endl;
+    std::cout << "Enter 8 to test Classification Forest" << std::endl;
     std::cout << "Enter q to quit" << std::endl;
     std::cout << "\n" << std::endl;
 }
@@ -426,7 +305,7 @@ void interactiveMode()
 
         if (in.compare("6") == 0)
         {
-            testMethod(forest_path);
+            //testMethod(forest_path);
             printMenu();
         }
         else if (in.compare("7") == 0)
@@ -439,24 +318,14 @@ void interactiveMode()
             classifyOnline(forest_path);
             printMenu();
         }
-        else if (in.compare("c") == 0)
-        {
-            trainClassification(FILE_PATH, forest_path);
-            printMenu();
-        }
-        else if (in.compare("r") == 0)
-        {
-            trainRegression(FILE_PATH, forest_path);
-            printMenu();
-        }
         else if (in.compare("1") == 0)
         {
-            trainClassificationPar(FILE_PATH, forest_path, 100);
+            //trainClassificationPar(FILE_PATH, forest_path, 100);
             printMenu();
         }
         else if (in.compare("2") == 0)
         {
-            trainRegressionPar(FILE_PATH, forest_path, 100);
+            //trainRegressionPar(FILE_PATH, forest_path, 100);
             printMenu();
         }
         else if (in.compare("q") == 0)
@@ -468,7 +337,7 @@ void interactiveMode()
     }
 }
 
-void printUseage(bool incorrect=false)
+void printUsage(bool incorrect=false)
 {
     if(incorrect)
         std::cout << "Incorrect input." << std::endl;
@@ -482,6 +351,7 @@ ProgramParameters getParamsFromFile(std::string& params_path)
 {
     ProgramParameters return_params;
     std::string line;
+    // If you change this, MAKE SURE you change to value of num_categories!!!
     std::string categories [] = {"TRAINING_IMAGE_PATH",
                                     "TRAINING_IMAGES",
                                     "IMAGES_START",
@@ -496,14 +366,20 @@ ProgramParameters getParamsFromFile(std::string& params_path)
                                     "THRESHOLDS_PER_FEATURE",
                                     "VERBOSE",
                                     "EXPERT",
-                                    "MAX_THREADS"};
+                                    "MAX_THREADS",
+                                    "SPLIT_FUNCTION",
+                                    "FOREST_OUTPUT",
+                                    "INPUT_PREFIX",
+                                    "IMG_WIDTH",
+                                    "IMG_HEIGHT"};
 
+    int num_categories = 20;
     try
     {
         ifstream params_file(params_path);
         if(params_file.is_open())
         {
-            for(int i=0;i<15;i++)
+            for(int i=0;i<num_categories;i++)
             {
                 // line by line in the file
                 // find category string in line
@@ -514,7 +390,6 @@ ProgramParameters getParamsFromFile(std::string& params_path)
                     if(line.find(categories[i]) != std::string::npos)
                     {
                         std::getline(params_file, line);
-                        std::cout << line;
                         return_params.setParam(categories[i], line);
                         break;
                     }
@@ -539,33 +414,42 @@ ProgramParameters getParamsFromFile(std::string& params_path)
 ProgramParameters getParamsFromFile(std::string& params_path, std::string& images_path)
 {
     ProgramParameters return_params = getParamsFromFile(params_path);
-    return_params.setParam("TRAINING_IMAGES_PATH", images_path);
+    return_params.setParam("TRAINING_IMAGE_PATH", images_path);
 
     return return_params;
 }
 
 int main(int argc, char *argv[])
 {
+    bool quit_flag = false;
+    ProgramParameters progParams;
     if( argc < 2 )
     {
-        printUseage();
+        printUsage();
         std::cout << "Interactive mode" << std::endl;
         interactiveMode();    
+        quit_flag = true;
     }
     else if(argc == 2)
     {
         std::string params_path = argv[1];
-        ProgramParameters progParams = getParamsFromFile(params_path);
+        progParams = getParamsFromFile(params_path);
+        progParams.prettyPrint();
     }
     else if(argc == 3)
     {
         std::string params_path = argv[1];
         std::string images_path = argv[2];
-        ProgramParameters progParams = getParamsFromFile(params_path, images_path);
+        progParams = getParamsFromFile(params_path, images_path);
+        progParams.prettyPrint();
     }
     else
     {
-        printUseage(true);
+        printUsage(true); 
+        quit_flag = true;
     }
+
+    if(!quit_flag)
+        growSomeForests(progParams);
 
 }

@@ -26,30 +26,29 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         return label_mat;
     }
 
-    std::unique_ptr<DataPointCollection> DataPointCollection::LoadImagesClass(
-        std::string path, 
-        cv::Size img_size,
-        bool depth_raw,
-        int number, 
-        int start,
-        int num_classes,
-        bool zero_class_label,
-        int patch_size)
+    std::unique_ptr<DataPointCollection> DataPointCollection::LoadImagesClass(ProgramParameters& progParams)
     {
-        
+        // TODO: move to progParams
+        // TODO: move image size to params too
+        std::string prefix = progParams.InputPrefix;
+        cv::Size img_size = cv::Size(progParams.ImgWidth, progParams.ImgHeight);
+
+        // for shorthand
+        std::string path = progParams.TrainingImagesPath;
         if (!IPUtils::dirExists(path))
             throw std::runtime_error("Failed to find directory:\t" + path);
 
-        if (patch_size % 2 == 0)
+        if (progParams.PatchSize % 2 == 0)
             throw std::runtime_error("Patch size must be odd");
         
-        int first = start;
+        int number = progParams.NumberTrainingImages;
+        int first = progParams.TrainingImagesStart;
         int last = first + number -1;
 
         // Set up DataPointCollection object
         std::unique_ptr<DataPointCollection> result = std::unique_ptr<DataPointCollection>(new DataPointCollection());
-        result->dimension_ = patch_size * patch_size;
-        result->depth_raw = depth_raw;
+        result->dimension_ = progParams.PatchSize * progParams.PatchSize;
+        result->depth_raw = progParams.DepthRaw;
         result->image_size = img_size;
         result->data_vec_size = number * img_size.height * img_size.width;
 
@@ -60,21 +59,18 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         result->data_.resize(result->data_vec_size);
         int img_no = 0;
         int datum_no = 0;
-        //int target_no = 0;
         int label_no = 0;
-        //if (bHasTargetValues)
-        //  result->targets_.resize(result->data_vec_size);
-
+        
         result->labels_.resize(result->data_vec_size);
         
         // Variables affecting class formation
-        bool zero_class = zero_class_label;
-        int total_classes = num_classes;
+        bool zero_class = true;
+        int total_classes = progParams.Bins;
         // This max parameter is important. Don't forget this is aimed at 16 bit unsigned ints, 
         // so the viable range is 0-65535. 
         // If not using RAW depth data format, it's measured in mm, so be sensible (i.e. 1000 - 1500 mm?)
-        int max = depth_raw ? 65000 : 1200;
-        result->pixelLabels_ = IPUtils::generateDepthBinMap(zero_class, total_classes, max);
+        int max = progParams.DepthRaw ? 65000 : 1200;
+        result->pixelLabels_ = IPUtils::generateDepthBinMap(true, total_classes, max);
         
         cv::Mat ir_image, ir_preprocessed, depth_image, depth_labels;
         std::string ir_path;
@@ -84,8 +80,8 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         for (int i = first; i <= last;i++)
         {
             // generate individual image paths
-            ir_path = path + "test" + std::to_string(i) + "ir.png";
-            depth_path = path + "test" + std::to_string(i) + "depth.png";
+            ir_path = path + prefix + std::to_string(i) + "ir.png";
+            depth_path = path + prefix + std::to_string(i) + "depth.png";
 
             //std::cout << std::to_string(i) << std::endl;
             // read depth and ir images
@@ -137,33 +133,29 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         return result;
     }
 
-    std::unique_ptr<DataPointCollection> DataPointCollection::LoadImagesRegression(
-        std::string path,
-        cv::Size img_size,
-        bool depth_raw,
-        int number,
-        int start,
-        int num_classes,
-        bool zero_class_label,
-        int class_number,
-        int patch_size)
+    std::unique_ptr<DataPointCollection> DataPointCollection::LoadImagesRegression(ProgramParameters& progParams, int class_number)
     {
+        std::string prefix = progParams.InputPrefix;
+        cv::Size img_size = cv::Size(progParams.ImgWidth, progParams.ImgHeight);
+
+        std::string path = progParams.TrainingImagesPath;
         if (!IPUtils::dirExists(path))
             throw std::runtime_error("Failed to find directory:\t" + path);
 
-        if (patch_size % 2 == 0)
+        if (progParams.PatchSize % 2 == 0)
             throw std::runtime_error("Patch size must be odd");
 
-        if (class_number >= num_classes)
+        if ((class_number >= progParams.Bins)||(class_number<-1))
             throw std::runtime_error("class number outside class range.");
 
-        int first = start;
+        int number = progParams.NumberTrainingImages;
+        int first = progParams.TrainingImagesStart;
         int last = first + number - 1;
 
         // Set up DataPointCollection object
         std::unique_ptr<DataPointCollection> result = std::unique_ptr<DataPointCollection>(new DataPointCollection());
-        result->dimension_ = patch_size * patch_size;
-        result->depth_raw = depth_raw;
+        result->dimension_ = progParams.PatchSize * progParams.PatchSize;
+        result->depth_raw = progParams.DepthRaw;
         result->image_size = img_size;
         result->data_vec_size = number * img_size.height * img_size.width;
 
@@ -179,12 +171,12 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         result->targets_.resize(result->data_vec_size);
 
         // Variables affecting class formation
-        bool zero_class = zero_class_label;
-        int total_classes = num_classes;
+        bool zero_class = true;
+        int total_classes = progParams.Bins;
         // This max parameter is important. Don't forget this is aimed at 16 bit unsigned ints, 
         // so the viable range is 0-65535. 
         // If not using RAW depth data format, it's measured in mm, so be sensible (i.e. 1000 - 1500 mm?)
-        int max = depth_raw ? 65000 : 1200;
+        int max = progParams.DepthRaw ? 65000 : 1200;
         result->pixelLabels_ = IPUtils::generateDepthBinMap(zero_class, total_classes, max);
 
         cv::Mat ir_image, ir_preprocessed, depth_image, depth_labels;
@@ -195,8 +187,8 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         for (int i = first; i <= last; i++)
         {
             // generate individual image paths
-            ir_path = path + "test" + std::to_string(i) + "ir.png";
-            depth_path = path + "test" + std::to_string(i) + "depth.png";
+            ir_path = path + prefix + std::to_string(i) + "ir.png";
+            depth_path = path + prefix + std::to_string(i) + "depth.png";
 
             //std::cout << std::to_string(i) << std::endl;
             // read depth and ir images
