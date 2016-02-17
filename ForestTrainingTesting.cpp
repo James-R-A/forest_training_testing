@@ -36,9 +36,10 @@ int trainClassificationPar(ProgramParameters& progParams)
     
     std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesClass(progParams);
     
-    int images = training_data->Count() / (progParams.ImgHeight * progParams.ImgWidth);
-    std::cout << "Data loaded here's how many images: " << std::to_string(images) << std::endl;
+    int images = training_data->CountImages();
+    std::cout << "Data loaded from images: " << std::to_string(images) << std::endl;
     std::cout << "of size: " << std::to_string(progParams.ImgHeight * progParams.ImgWidth) << std::endl;
+    std::cout << "Total points:" << std::to_string(training_data->Count()) << std::endl;
  
     std::cout << "\nAttempting training" << std::endl;
     try
@@ -63,9 +64,9 @@ int trainRegressionPar(ProgramParameters& progParams, int class_expert_no = -1)
     std::string file_suffix;
     
     if(class_expert_no != -1)
-        std::string file_suffix = "_expert" + std::to_string(class_expert_no) + ".frst";
+        file_suffix = "_expert" + std::to_string(class_expert_no) + ".frst";
     else
-        std::string file_suffix = "_regressor.frst";
+        file_suffix = "_regressor.frst";
 
     std::string filename = progParams.TrainingImagesPath + "/" + progParams.OutputFilename + file_suffix;
 
@@ -75,9 +76,10 @@ int trainRegressionPar(ProgramParameters& progParams, int class_expert_no = -1)
     // create a DataPointCollection in the regression format
     std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesRegression(progParams, class_expert_no); 
 
-    int images = training_data->Count() / (progParams.ImgHeight * progParams.ImgWidth);
-    std::cout << "Data loaded here's how many images: " << std::to_string(images) << std::endl;
+    int images = training_data->CountImages();
+    std::cout << "Data loaded from images: " << std::to_string(images) << std::endl;
     std::cout << "of size: " << std::to_string(progParams.ImgHeight * progParams.ImgWidth) << std::endl;
+    std::cout << "Total points:" << std::to_string(training_data->Count()) << std::endl;
 
     // Train a regressoin forest
     std::cout << "\nAttempting training" << std::endl;
@@ -277,6 +279,7 @@ int growSomeForests(ProgramParameters& progParams)
     {
         try
         {
+            std::cout << "\nAttempting to grow classifier" << std::endl;
             trainClassificationPar(progParams);
         }
         catch (const std::runtime_error& e)
@@ -289,6 +292,7 @@ int growSomeForests(ProgramParameters& progParams)
     {
         try
         {
+            std::cout << "\nAttempting to grow regressor" << std::endl;
             trainRegressionPar(progParams, -1);
         }
         catch (const std::runtime_error& e)
@@ -301,6 +305,7 @@ int growSomeForests(ProgramParameters& progParams)
     {
         try
         {
+            std::cout << "\nAttempting to grow expert regressor " << std::to_string(progParams.ExpertClassNo) << std::endl;
             trainRegressionPar(progParams, progParams.ExpertClassNo);
         }
         catch (const std::runtime_error& e)
@@ -315,6 +320,7 @@ int growSomeForests(ProgramParameters& progParams)
         {
             try
             {
+                std::cout << "\nAttempting to grow expert regressor " << std::to_string(i) << std::endl;
                 trainRegressionPar(progParams, i);
             }
             catch (const std::runtime_error& e)

@@ -34,7 +34,6 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
     ~Forest()
     {
-      std::cout << "bar1" << std::endl;
       for(TreeIndex t=0; t<trees_.size(); t++)
         delete trees_[t];
     }

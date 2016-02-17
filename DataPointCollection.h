@@ -110,6 +110,11 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
             return (*std::max_element(pixelLabels_.begin(), pixelLabels_.end())) + 1;
         }
 
+        int CountImages() const
+        {
+            return images_.size();
+        }
+
         /// <summary>
         /// Do these data have target values (e.g. for regression)?
         /// </summary>
