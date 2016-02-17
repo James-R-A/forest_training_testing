@@ -152,8 +152,7 @@ cv::Mat IPUtils::preProcess(cv::Mat image_in, int bilat_param, int threshold_val
 
 std::vector<int> IPUtils::generateDepthBinMap(bool zero_bin, int total_bins, int max)
 {
-    std::vector<int> binMap;
-    binMap.resize(max + 1);
+    std::vector<int> binMap(max+1);
     int ranged_classes = zero_bin ? total_bins - 1 : total_bins;
     int division = (int)ceil((float)max / ranged_classes);
     int class_no = zero_bin ? 1 : 0;
@@ -224,10 +223,11 @@ std::vector<uchar> IPUtils::vectorFromBins(cv::Mat bin_mat, cv::Size expected_si
     if (samples != expected_size.area())
         throw "Invalid sizes!";
 
-    std::vector<uchar> out_vec;
-    out_vec.resize(samples);
+    std::vector<uchar> out_vec(samples);
+    
     int row_max;
     int row_max_index;
+    // TODO change from at to ptr.
     for (int i = 0; i < samples; i++)
     {
         //int* bin = bin_mat.ptr<int>(i);
@@ -245,6 +245,38 @@ std::vector<uchar> IPUtils::vectorFromBins(cv::Mat bin_mat, cv::Size expected_si
     }
     
     return out_vec;
+}
+
+std::vector<float> IPUtils::weightsFromBins(cv::Mat bin_mat)
+{
+    int samples = bin_mat.size().height;
+    int bins = bin_mat.size().width;
+    std::vector<uint64_t> bin_totals(bins);
+    std::vector<float> weights(bins);
+
+    for(int i=0;i<samples;i++)
+    {
+        int* bin = bin_mat.ptr<int>(i);
+        for(int j=0;j<bins;j++)
+        {
+            bin_totals[j] = bin_totals[j] + uint64_t(bin[j]);
+        }
+    }
+
+    uint64_t total = 0;
+    for(int i=0;i<bins;i++)
+    {
+        total = total + bin_totals[i];
+    }
+    
+    for(int i=0;i<bins;i++)
+    {
+        std::cout << std::to_string(bin_totals[i]) << " / " << std::to_string(total) << " = ";
+        weights[i] = float(bin_totals[i]) / total;
+        std::cout << std::to_string(weights[i]) << std::endl;
+    }
+    
+    return weights;
 }
 
 #ifdef __WIN32

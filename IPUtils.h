@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <cstdint>
 #ifdef _WIN32
 #include <Windows.h>
 #endif
@@ -49,6 +50,8 @@ public:
     static cv::Mat getPatch(cv::Mat image, cv::Point center, int patch_size);
 
     static std::vector<uchar> vectorFromBins(cv::Mat bin_mat, cv::Size expected_size);
+
+    static std::vector<float> weightsFromBins(cv::Mat bin_mat);
 
     static bool dirExists(const std::string& dirName_in);
     

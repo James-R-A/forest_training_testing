@@ -143,9 +143,8 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         static std::vector<int16_t> ApplyMat(Forest<F, DiffEntropyAggregator>& forest, const DataPointCollection& regressData)
         {
             unsigned int samples = regressData.Count();
-            std::vector<int16_t> ret;
-            ret.resize(samples);
-
+            std::vector<int16_t> ret(samples);
+            
             for (unsigned int t = 0; t < forest.TreeCount(); t++)
             {
                 std::vector<int> leafNodeIndices;
@@ -173,9 +172,8 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         static std::vector<int16_t> ApplyMat(ForestShared<F, DiffEntropyAggregator>& forest, const DataPointCollection& regressData)
         {
             unsigned int samples = regressData.Count();
-            std::vector<int16_t> ret;
-            ret.resize(samples);
-
+            std::vector<int16_t> ret(samples);
+            
             for (unsigned int t = 0; t < forest.TreeCount(); t++)
             {
                 std::vector<int> leafNodeIndices;

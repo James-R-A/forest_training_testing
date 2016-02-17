@@ -258,7 +258,7 @@ int classifyOnline(std::string dir_path)
         std::unique_ptr<DataPointCollection> test_data1 = DataPointCollection::LoadMat(test_image, cv::Size(640, 480));
         bins_mat = Classifier<PixelSubtractionResponse>::ApplyMat(*forest_shared, *test_data1);
         std::vector<uchar> bins_vec = IPUtils::vectorFromBins(bins_mat, cv::Size(640, 480));
-        cv::Mat result_mat1 = cv::Mat(480, 640, CV_8UC1, (uint8_t*)bins_vec.data());
+        cv::Mat result_mat1 = cv::Mat(480, 640, CV_8UC1, (int8_t*)bins_vec.data());
         cv::normalize(result_mat1, result_norm1, 0, 255, cv::NORM_MINMAX, CV_8UC1);
         cv::imshow("output", result_norm1);
         int64 process_time = (((cv::getTickCount() - start_time) / cv::getTickFrequency()) * 1000);
@@ -271,6 +271,118 @@ int classifyOnline(std::string dir_path)
     cv::destroyAllWindows();
     
     return 0;
+}
+
+int applyMultiLevel()
+{
+    std::string class_path = "/media/james/data_wd/test_full_classifier.frst";
+    std::string e_path[] = {"/media/james/data_wd/test_full_expert0.frst",
+                            "/media/james/data_wd/test_full_expert1.frst",
+                            "/media/james/data_wd/test_full_expert2.frst",
+                            "/media/james/data_wd/test_full_expert3.frst",
+                            "/media/james/data_wd/test_full_expert4.frst"};
+    std::vector<std::string> expert_path (e_path, e_path+5);
+    std::vector<std::unique_ptr<ForestShared<PixelSubtractionResponse, DiffEntropyAggregator> > > experts;
+    std::unique_ptr<ForestShared<PixelSubtractionResponse, HistogramAggregator> > classifier;
+    int bins = 5;
+
+    // Load the classifier and expert regressors.
+    try{
+        std::cout << "Loading classifier" << std::endl;
+        // load classifier
+        std::unique_ptr<Forest<PixelSubtractionResponse, HistogramAggregator> > c_forest =
+            Forest<PixelSubtractionResponse, HistogramAggregator>::Deserialize(class_path);
+        // Create ForestShared from loaded forest
+        std::unique_ptr<ForestShared<PixelSubtractionResponse, HistogramAggregator> > c_forest_shared =
+            ForestShared<PixelSubtractionResponse, HistogramAggregator>::ForestSharedFromForest(*c_forest);
+        // Delete original forest. May roll these steps into one later if we don't need a regular forest application.
+        c_forest->~Forest();
+        c_forest.release();
+        classifier = move(c_forest_shared);
+        std::cout << "Classifier loaded with " << std::to_string(classifier->TreeCount()) << " trees" << std::endl;
+        for(int i=0;i<bins;i++)
+        {
+            std::cout << "Loading expert " << std::to_string(i) << std::endl;
+            std::unique_ptr<Forest<PixelSubtractionResponse, DiffEntropyAggregator> > e_forest =
+                Forest<PixelSubtractionResponse, DiffEntropyAggregator>::Deserialize(expert_path[i]);
+            // Create ForestShared from loaded forest
+            std::unique_ptr<ForestShared<PixelSubtractionResponse, DiffEntropyAggregator> > e_forest_shared =
+                ForestShared<PixelSubtractionResponse, DiffEntropyAggregator>::ForestSharedFromForest(*e_forest);
+            // Delete original forest. May roll these steps into one later if we don't need a regular forest application.
+            e_forest->~Forest();
+            e_forest.release();
+            std::cout << "Expert loaded with " << std::to_string(e_forest_shared->TreeCount()) << " trees" << std::endl;
+            experts.push_back(std::move(e_forest_shared));
+        }
+    }
+    catch(const std::runtime_error& e)
+    {
+        std::cerr << "Forest loading Failed" << std::endl;
+        std::cerr << e.what() << std::endl;
+    }
+
+
+    // Load up an image, apply it to classifier to get weights
+    // apply it to all experts, then ans = weighted sum
+    std::string img_path = "/media/james/data_wd/test";
+    std::string pathstring;
+    cv::Mat test_image;
+    cv::Mat bins_mat;
+    cv::Mat reg_mat;
+    cv::Mat result_norm1;
+    std::vector<float> weights_vec(bins);
+    
+    for (int i = 0; i < 106; i++)
+    {
+        int64 start_time = cv::getTickCount();
+        pathstring = img_path + std::to_string(i) + "ir.png";
+        test_image = cv::imread(pathstring, -1);
+        if (!test_image.data)
+            continue;
+
+        
+        std::unique_ptr<DataPointCollection> test_data1 = DataPointCollection::LoadMat(test_image, cv::Size(640, 480));
+        bins_mat = Classifier<PixelSubtractionResponse>::ApplyMat(*classifier, *test_data1);
+        // Get the weights for weighted sum from  classifiaction results. 
+        // Essentially represents the probability for any pixel in the image to be in 
+        // a certain bin.
+        
+        weights_vec = IPUtils::weightsFromBins(bins_mat);
+        std::vector<int16_t> sum_weighted_output(bins, 0);
+        
+        for(int j=0;j<bins;j++)
+        {
+            std::vector<int16_t> expert_output = Regressor<PixelSubtractionResponse>::ApplyMat(*experts[j], *test_data1);
+            std::cout << to_string(sum_weighted_output[0]) << std::endl;
+            std::cout << to_string(weights_vec[j]) << std::endl;
+            std::cout << to_string(expert_output[0]) << std::endl;
+            for(int k=0;k<expert_output.size();k++)
+            {
+                sum_weighted_output[k] = sum_weighted_output[k] + int16_t(expert_output[k] * weights_vec[j]);
+            }
+            std::cout << std::endl << std::endl;
+        }
+
+        reg_mat = cv::Mat(480, 640, CV_16UC1, (int16_t*)sum_weighted_output.data());
+        cv::normalize(reg_mat, result_norm1, 0, 65535, cv::NORM_MINMAX, CV_16UC1);
+        cv::imshow("output", result_norm1);
+
+        int64 process_time = (((cv::getTickCount() - start_time) / cv::getTickFrequency()) * 1000);
+        std::cout << "Process time: " << std::to_string(process_time) << std::endl;
+        int wait_time = std::max(2, (int)(LOOP_DELAY - process_time));
+        if(cv::waitKey(wait_time) >= 0)
+            break;
+    }
+    cv::startWindowThread();
+    cv::destroyAllWindows();
+    
+    return 0;
+    
+}
+
+void testFunction()
+{
+   applyMultiLevel();
 }
 
 int growSomeForests(ProgramParameters& progParams)
@@ -338,7 +450,6 @@ void printMenu()
     std::cout << std::endl;
     std::cout << "Enter 1 to train Classification Forest in parallel" << std::endl;
     std::cout << "Enter 2 to train Regression Forest in parallel" << std::endl;
-    std::cout << "Enter 3 to train Expert Regressors" << std::endl;
     std::cout << "Enter 6 to compare a depth image and classified image" << std::endl;
     std::cout << "Enter 7 to test Regression Forest" << std::endl;
     std::cout << "Enter 8 to test Classification Forest" << std::endl;
@@ -385,6 +496,7 @@ void interactiveMode()
             printMenu();
         }
         else if (in.compare("q") == 0)
+            testFunction();
             cont = false;
 
         // Refresh cin buffer
