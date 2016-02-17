@@ -28,8 +28,6 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
     std::unique_ptr<DataPointCollection> DataPointCollection::LoadImagesClass(ProgramParameters& progParams)
     {
-        // TODO: move to progParams
-        // TODO: move image size to params too
         std::string prefix = progParams.InputPrefix;
         cv::Size img_size = cv::Size(progParams.ImgWidth, progParams.ImgHeight);
 
@@ -80,8 +78,8 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         for (int i = first; i <= last;i++)
         {
             // generate individual image paths
-            ir_path = path + prefix + std::to_string(i) + "ir.png";
-            depth_path = path + prefix + std::to_string(i) + "depth.png";
+            ir_path = path + "/" + prefix + std::to_string(i) + "ir.png";
+            depth_path = path + "/" + prefix + std::to_string(i) + "depth.png";
 
             //std::cout << std::to_string(i) << std::endl;
             // read depth and ir images
@@ -187,8 +185,8 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         for (int i = first; i <= last; i++)
         {
             // generate individual image paths
-            ir_path = path + prefix + std::to_string(i) + "ir.png";
-            depth_path = path + prefix + std::to_string(i) + "depth.png";
+            ir_path = path + "/" + prefix + std::to_string(i) + "ir.png";
+            depth_path = path + "/" + prefix + std::to_string(i) + "depth.png";
 
             //std::cout << std::to_string(i) << std::endl;
             // read depth and ir images

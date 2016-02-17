@@ -9,7 +9,9 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 #include "ProgressStream.h"
 
@@ -325,6 +327,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       return forest;
     }
 
+  #ifdef _OPENMP
   static std::unique_ptr<Forest<F, S> > ParallelTrainForest(
     Random& random,
     const TrainingParameters& parameters,
@@ -372,5 +375,6 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
     return forest;
   }
+  #endif
   };
 } } }

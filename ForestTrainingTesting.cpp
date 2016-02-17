@@ -30,13 +30,15 @@ const std::string FILE_PATH = "/media/james/data_wd/";
 int trainClassificationPar(ProgramParameters& progParams)
 {
 
-    std::string filename = progParams.TrainingImagesPath + progParams.OutputFilename + "_classifier.frst";
+    std::string filename = progParams.TrainingImagesPath + "/" + progParams.OutputFilename + "_classifier.frst";
      
     std::cout << "Searching for some IR and depth images in " << progParams.TrainingImagesPath << std::endl;
+    
     std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesClass(progParams);
-
-    std::cout << "Data loaded here's how many samples: " << training_data->Count() << std::endl;
-    std::cout << "Using dimensionality: " << training_data->Dimensions() << std::endl;
+    
+    int images = training_data->Count() / (progParams.ImgHeight * progParams.ImgWidth);
+    std::cout << "Data loaded here's how many images: " << std::to_string(images) << std::endl;
+    std::cout << "of size: " << std::to_string(progParams.ImgHeight * progParams.ImgWidth) << std::endl;
  
     std::cout << "\nAttempting training" << std::endl;
     try
@@ -45,6 +47,7 @@ int trainClassificationPar(ProgramParameters& progParams)
             Classifier<PixelSubtractionResponse>::TrainPar(*training_data, progParams.Tpc);
 
         forest->Serialize(filename);
+        std::cout << "Training complete, forest saved in :" << filename << std::endl;
     }
     catch (const std::runtime_error& e)
     {
@@ -52,23 +55,29 @@ int trainClassificationPar(ProgramParameters& progParams)
         std::cerr << e.what() << std::endl;
     }
 
-    std::cout << "Training complete, forest saved in :" << filename << std::endl;
-
     return 0;
 }
 
 int trainRegressionPar(ProgramParameters& progParams, int class_expert_no = -1)
 {
-    std::string file_suffix = (class_expert_no == -1)? "_expert.frst" : "_regressor.frst";
-    std::string filename = progParams.TrainingImagesPath + progParams.OutputFilename + file_suffix;
+    std::string file_suffix;
+    
+    if(class_expert_no != -1)
+        std::string file_suffix = "_expert" + std::to_string(class_expert_no) + ".frst";
+    else
+        std::string file_suffix = "_regressor.frst";
 
-     
+    std::string filename = progParams.TrainingImagesPath + "/" + progParams.OutputFilename + file_suffix;
+
     std::cout << "Searching for some IR and depth images in " << progParams.TrainingImagesPath << std::endl;
-    // create a DataPointCollection in the regression format
-    std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesRegression(progParams, class_expert_no); // TODO change
 
-    std::cout << "Data loaded here's how many samples: " << training_data->Count() << std::endl;
-    std::cout << " each with dimensionality: " << training_data->Dimensions() << std::endl;
+    
+    // create a DataPointCollection in the regression format
+    std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesRegression(progParams, class_expert_no); 
+
+    int images = training_data->Count() / (progParams.ImgHeight * progParams.ImgWidth);
+    std::cout << "Data loaded here's how many images: " << std::to_string(images) << std::endl;
+    std::cout << "of size: " << std::to_string(progParams.ImgHeight * progParams.ImgWidth) << std::endl;
 
     // Train a regressoin forest
     std::cout << "\nAttempting training" << std::endl;
@@ -82,7 +91,7 @@ int trainRegressionPar(ProgramParameters& progParams, int class_expert_no = -1)
     }
     catch (const std::runtime_error& e)
     {
-        std::cout << "Training Failed" << std::endl;
+        std::cerr << "Training Failed" << std::endl;
         std::cerr << e.what() << std::endl;
     }
 
@@ -262,17 +271,58 @@ int classifyOnline(std::string dir_path)
     return 0;
 }
 
-int trainExperts(std::string path, std::string save_path, std::string save_prefix)
-{
-    for(int i=0;i<5;i++)
-    {
-        std::string filename = save_prefix + to_string(i);
-
-    }
-}
-
 int growSomeForests(ProgramParameters& progParams)
 {
+    if(progParams.ForestType == ForestDescriptor::Classification || progParams.ForestType == ForestDescriptor::All)
+    {
+        try
+        {
+            trainClassificationPar(progParams);
+        }
+        catch (const std::runtime_error& e)
+        {
+            std::cerr << e.what() << std::endl;
+        }
+    }
+
+    if(progParams.ForestType == ForestDescriptor::Regression)
+    {
+        try
+        {
+            trainRegressionPar(progParams, -1);
+        }
+        catch (const std::runtime_error& e)
+        {
+            std::cerr << e.what() << std::endl;
+        }
+    }
+
+    if(progParams.ForestType == ForestDescriptor::ExpertRegressor)
+    {
+        try
+        {
+            trainRegressionPar(progParams, progParams.ExpertClassNo);
+        }
+        catch (const std::runtime_error& e)
+        {
+            std::cerr << e.what() << std::endl;
+        }
+    }
+
+    if(progParams.ForestType == ForestDescriptor::All)
+    {
+        for (int i=0;i<progParams.Bins;i++)
+        {
+            try
+            {
+                trainRegressionPar(progParams, i);
+            }
+            catch (const std::runtime_error& e)
+            {
+                std::cerr << e.what() << std::endl;
+            }
+        }
+    }   
     
 }
 
@@ -387,7 +437,12 @@ ProgramParameters getParamsFromFile(std::string& params_path)
                 // clear and reset file
                 while(std::getline(params_file, line))
                 {
-                    if(line.find(categories[i]) != std::string::npos)
+                    if(line.find("#") == 0)
+                    {
+                        std::cout << line << std::endl;
+                        continue;
+                    }
+                    else if(line.find(categories[i]) != std::string::npos)
                     {
                         std::getline(params_file, line);
                         return_params.setParam(categories[i], line);

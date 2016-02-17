@@ -1,7 +1,7 @@
 #pragma once
 
-// This file defines the ParallelParallelTreeTraininer class, which is responsible for
-// creating new Tree instances by learning from training data.
+// This file defines the Training and Program parameters objects which control the 
+// operation of the program
 
 #include <assert.h>
 
@@ -212,9 +212,21 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       else if(parameter.compare("MAX_THREADS") == 0)
       {
         int n= std::stoi(value);
-        Tpc.MaxThreads = n;
-        Tpr.MaxThreads = n;
-      }
+        if((n > omp_get_max_threads()) || (n == -1))
+        {
+          Tpc.MaxThreads = omp_get_max_threads();
+          Tpr.MaxThreads = omp_get_max_threads();
+        }
+        else if(n < -1)
+        {
+          throw std::runtime_error("Invalid number of threads");
+        }
+        else
+        {
+          Tpc.MaxThreads = n;
+          Tpr.MaxThreads = n;
+        } 
+      } 
       else if(parameter.compare("SPLIT_FUNCTION")==0)
       {
         if(value.compare("PIXEL_DIFFERENCE") == 0)
