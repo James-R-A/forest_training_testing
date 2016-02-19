@@ -247,32 +247,23 @@ std::vector<uchar> IPUtils::vectorFromBins(cv::Mat bin_mat, cv::Size expected_si
     return out_vec;
 }
 
-std::vector<float> IPUtils::weightsFromBins(cv::Mat bin_mat)
+std::vector<float> IPUtils::weightsFromBins(cv::Mat bin_mat, cv::Size image_size)
 {
     int samples = bin_mat.size().height;
     int bins = bin_mat.size().width;
-    std::vector<uint64_t> bin_totals(bins);
+    std::vector<uchar> bin_vector = vectorFromBins(bin_mat, image_size);
+    std::vector<int> bin_totals(bins);
     std::vector<float> weights(bins);
 
     for(int i=0;i<samples;i++)
     {
-        int* bin = bin_mat.ptr<int>(i);
-        for(int j=0;j<bins;j++)
-        {
-            bin_totals[j] = bin_totals[j] + uint64_t(bin[j]);
-        }
+        bin_totals[bin_vector[i]]++;
     }
-
-    uint64_t total = 0;
+      
     for(int i=0;i<bins;i++)
     {
-        total = total + bin_totals[i];
-    }
-    
-    for(int i=0;i<bins;i++)
-    {
-        std::cout << std::to_string(bin_totals[i]) << " / " << std::to_string(total) << " = ";
-        weights[i] = float(bin_totals[i]) / total;
+        std::cout << std::to_string(bin_totals[i]) << " / " << std::to_string(samples) << " = ";
+        weights[i] = float(bin_totals[i]) / samples;
         std::cout << std::to_string(weights[i]) << std::endl;
     }
     

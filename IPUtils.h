@@ -51,7 +51,7 @@ public:
 
     static std::vector<uchar> vectorFromBins(cv::Mat bin_mat, cv::Size expected_size);
 
-    static std::vector<float> weightsFromBins(cv::Mat bin_mat);
+    static std::vector<float> weightsFromBins(cv::Mat bin_mat, cv::Size image_size);
 
     static bool dirExists(const std::string& dirName_in);
     

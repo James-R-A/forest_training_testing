@@ -347,15 +347,12 @@ int applyMultiLevel()
         // Essentially represents the probability for any pixel in the image to be in 
         // a certain bin.
         
-        weights_vec = IPUtils::weightsFromBins(bins_mat);
-        std::vector<int16_t> sum_weighted_output(bins, 0);
+        weights_vec = IPUtils::weightsFromBins(bins_mat, cv::Size(640,480));
+        std::vector<int16_t> sum_weighted_output((640*480), 0);
         
         for(int j=0;j<bins;j++)
         {
             std::vector<int16_t> expert_output = Regressor<PixelSubtractionResponse>::ApplyMat(*experts[j], *test_data1);
-            std::cout << to_string(sum_weighted_output[0]) << std::endl;
-            std::cout << to_string(weights_vec[j]) << std::endl;
-            std::cout << to_string(expert_output[0]) << std::endl;
             for(int k=0;k<expert_output.size();k++)
             {
                 sum_weighted_output[k] = sum_weighted_output[k] + int16_t(expert_output[k] * weights_vec[j]);
