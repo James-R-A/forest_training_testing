@@ -324,7 +324,7 @@ int applyMultiLevel()
 
     // Load up an image, apply it to classifier to get weights
     // apply it to all experts, then ans = weighted sum
-    std::string img_path = "/media/james/data_wd/test";
+    std::string img_path = "/media/james/data_wd/training_images/test";
     std::string pathstring;
     cv::Mat test_image;
     cv::Mat bins_mat;
