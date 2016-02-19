@@ -1,6 +1,10 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 2.8)
 set(CMAKE_CXX_STANDARD 11) 
 project( FTT )
+
+if(${CMAKE_CURRENT_SOURCE_DIR} MATCHES "/home/jamesa/+")
+    SET(OpenCV_DIR "/home/miko/opencv3/lib/share/OpenCV/")
+endif()
 
 find_package( OpenCV REQUIRED )
 
@@ -20,8 +24,8 @@ add_executable( FTT ForestTrainingTesting.cpp
 					Regression.cpp
 					StatisticsAggregators.cpp )
 target_link_libraries( FTT ${OpenCV_LIBS} )
-get_cmake_property(_variableNames VARIABLES)
-foreach (_variableName ${_variableNames})
-    message(STATUS "${_variableName}=${${_variableName}}")
-endforeach()
+#get_cmake_property(_variableNames VARIABLES)
+#foreach (_variableName ${_variableNames})
+#    message(STATUS "${_variableName}=${${_variableName}}")
+#endforeach()
 
