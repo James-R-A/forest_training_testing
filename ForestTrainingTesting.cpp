@@ -553,10 +553,7 @@ ProgramParameters getParamsFromFile(std::string& params_path)
                 while(std::getline(params_file, line))
                 {
                     if(line.find("#") == 0)
-                    {
-                        std::cout << line << std::endl;
                         continue;
-                    }
                     else if(line.find(categories[i]) != std::string::npos)
                     {
                         std::getline(params_file, line);
