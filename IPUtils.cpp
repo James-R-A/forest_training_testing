@@ -247,27 +247,125 @@ std::vector<uchar> IPUtils::vectorFromBins(cv::Mat bin_mat, cv::Size expected_si
     return out_vec;
 }
 
-std::vector<float> IPUtils::weightsFromBins(cv::Mat bin_mat, cv::Size image_size)
+std::vector<float> IPUtils::weightsFromBins(cv::Mat bin_mat, cv::Size image_size, bool include_zero)
 {
     int samples = bin_mat.size().height;
     int bins = bin_mat.size().width;
     std::vector<uchar> bin_vector = vectorFromBins(bin_mat, image_size);
-    std::vector<int> bin_totals(bins);
-    std::vector<float> weights(bins);
-
+    std::vector<int> bin_totals(bins, 0);
+    std::vector<float> weights(bins, 0);
+    int start = include_zero? 0:1;
+    int total = 0;
+    // TODO: change so include zero class or not include zero class
     for(int i=0;i<samples;i++)
     {
         bin_totals[bin_vector[i]]++;
     }
       
-    for(int i=0;i<bins;i++)
+    for(int i=start;i<bins;i++)
     {
-        std::cout << std::to_string(bin_totals[i]) << " / " << std::to_string(samples) << " = ";
         weights[i] = float(bin_totals[i]) / samples;
-        std::cout << std::to_string(weights[i]) << std::endl;
     }
     
     return weights;
+}
+
+double IPUtils::threshold16(cv::Mat& input_image, cv::Mat& output_image, int thresh, int maxval, int type)
+{
+    int input_type = input_image.type();
+    uchar input_depth = input_type & CV_MAT_DEPTH_MASK;
+    uchar chans = 1 + (type >> CV_CN_SHIFT);
+
+    if((chans != 1) || (input_depth != CV_16U))
+        throw std::runtime_error("invalid input format");
+
+    if(input_type != output_image.type())
+        throw std::runtime_error("image types not equal");
+
+    int rows = input_image.size().height;
+    int cols = input_image.size().width;
+
+    if(type == 0)
+    {
+        for(int r=0;r<rows;r++)
+        {
+            uint16_t* src_pix = input_image.ptr<uint16_t>(r);
+            uint16_t* dst_pix = output_image.ptr<uint16_t>(r);
+            for(int c=0;c<cols;c++)
+            {
+                if(src_pix[c] > thresh)
+                    dst_pix[c] = maxval;
+                else
+                    dst_pix[c] = 0;
+            }
+        }
+    }
+    else if(type == 1)
+    {
+        for(int r=0;r<rows;r++)
+        {
+            uint16_t* src_pix = input_image.ptr<uint16_t>(r);
+            uint16_t* dst_pix = output_image.ptr<uint16_t>(r);
+            for(int c=0;c<cols;c++)
+            {
+                if(src_pix[c] > thresh)
+                    dst_pix[c] = 0;
+                else
+                    dst_pix[c] = maxval;
+            }
+        }
+    }
+    else if(type == 2)
+    {
+        for(int r=0;r<rows;r++)
+        {
+            uint16_t* src_pix = input_image.ptr<uint16_t>(r);
+            uint16_t* dst_pix = output_image.ptr<uint16_t>(r);
+            for(int c=0;c<cols;c++)
+            {
+                if(src_pix[c] > thresh)
+                    dst_pix[c] = thresh;
+                else
+                    dst_pix[c] = src_pix[c];
+            }
+        }
+    }
+    else if(type == 3 )
+    {
+        for(int r=0;r<rows;r++)
+        {
+            uint16_t* src_pix = input_image.ptr<uint16_t>(r);
+            uint16_t* dst_pix = output_image.ptr<uint16_t>(r);
+            for(int c=0;c<cols;c++)
+            {
+                if(src_pix[c] > thresh)
+                    dst_pix[c] = src_pix[c];
+                else
+                    dst_pix[c] = 0;
+            }
+        }
+    }
+    else if(type == 4)
+    {
+        for(int r=0;r<rows;r++)
+        {
+            uint16_t* src_pix = input_image.ptr<uint16_t>(r);
+            uint16_t* dst_pix = output_image.ptr<uint16_t>(r);
+            for(int c=0;c<cols;c++)
+            {
+                if(src_pix[c] > thresh)
+                    dst_pix[c] = 0;
+                else
+                    dst_pix[c] = src_pix[c];
+            }
+        }
+    }
+    else
+    {
+        throw std::runtime_error("Invalid threshold type");
+    }
+
+    return 0.0;
 }
 
 #ifdef __WIN32

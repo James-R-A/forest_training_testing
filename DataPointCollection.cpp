@@ -88,11 +88,15 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
             // if program fails to open image
             if(!ir_image.data)
-                throw std::runtime_error("Failed to open image:\n\t" + ir_path);
-
+            {
+                std::cerr << "Failed to open image:\n\t" + ir_path << std::endl;
+                continue;
+            }
             if (!depth_image.data)
-                throw std::runtime_error("Failed to open image:\n\t" + depth_path);
-
+            {
+                std::cerr << "Failed to open image:\n\t" + depth_path << std::endl;
+                continue;
+            }
             // If the datatypes in the images are incorrect
             if (IPUtils::getTypeString(ir_image.type()) != "8UC1")
                 throw std::runtime_error("Encountered image with unexpected content type:\n\t" + ir_path);
@@ -195,10 +199,15 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
             // if program fails to open image
             if (!ir_image.data)
-                throw std::runtime_error("Failed to open image:\n\t" + ir_path);
-
+            {
+                std::cerr <<"Failed to open image:\n\t" + ir_path << std::endl;
+                continue;
+            }
             if (!depth_image.data)
-                throw std::runtime_error("Failed to open image:\n\t" + depth_path);
+            {
+                std::cerr << "Failed to open image:\n\t" + depth_path << std::endl;
+                continue;
+            }
 
             // If the datatypes in the images are incorrect
             if (IPUtils::getTypeString(ir_image.type()) != "8UC1")

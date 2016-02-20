@@ -51,9 +51,11 @@ public:
 
     static std::vector<uchar> vectorFromBins(cv::Mat bin_mat, cv::Size expected_size);
 
-    static std::vector<float> weightsFromBins(cv::Mat bin_mat, cv::Size image_size);
+    static std::vector<float> weightsFromBins(cv::Mat bin_mat, cv::Size image_size, bool include_zero);
 
     static bool dirExists(const std::string& dirName_in);
+
+    static double threshold16(cv::Mat& input_image, cv::Mat& output_image, int thresh, int maxval, int type);
     
     IPUtils();
     ~IPUtils();

@@ -140,10 +140,10 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         /// will put the trees out of scope. To avoid this, use a ForestShared
         /// object instead.
         /// </summary>
-        static std::vector<int16_t> ApplyMat(Forest<F, DiffEntropyAggregator>& forest, const DataPointCollection& regressData)
+        static std::vector<uint16_t> ApplyMat(Forest<F, DiffEntropyAggregator>& forest, const DataPointCollection& regressData)
         {
             unsigned int samples = regressData.Count();
-            std::vector<int16_t> ret(samples);
+            std::vector<uint16_t> ret(samples);
             
             for (unsigned int t = 0; t < forest.TreeCount(); t++)
             {
@@ -156,7 +156,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
                     // TODO potentially remove this declaration if it's taking too much time
                     DiffEntropyAggregator agg = tree->GetNode(leafNodeIndices[i]).TrainingDataStatistics;
 
-                    ret[i] = int16_t(round(agg.mean_));
+                    ret[i] = uint16_t(round(agg.mean_));
                 }
             }
 
@@ -169,10 +169,10 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         /// returns a std::vector where each element corresponds to an input pixel's
         /// probability distribution's mean value. 
         /// </summary>
-        static std::vector<int16_t> ApplyMat(ForestShared<F, DiffEntropyAggregator>& forest, const DataPointCollection& regressData)
+        static std::vector<uint16_t> ApplyMat(ForestShared<F, DiffEntropyAggregator>& forest, const DataPointCollection& regressData)
         {
             unsigned int samples = regressData.Count();
-            std::vector<int16_t> ret(samples);
+            std::vector<uint16_t> ret(samples);
             
             for (unsigned int t = 0; t < forest.TreeCount(); t++)
             {
@@ -184,7 +184,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
                 {
                     DiffEntropyAggregator agg = tree.GetNode(leafNodeIndices[i]).TrainingDataStatistics;
 
-                    ret[i] = int16_t(round(agg.mean_));
+                    ret[i] = uint16_t(round(agg.mean_));
                 }
             }
 

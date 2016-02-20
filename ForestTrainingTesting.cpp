@@ -178,12 +178,12 @@ int regressOnline(std::string dir_path)
     std::string forest_path = dir_path + filename;
     std::cout << "Attempting to deserialize forest from " << forest_path << std::endl;
 
-    std::string img_path = dir_path + "test";
+    std::string img_path = dir_path + "img";
     std::string pathstring;
     cv::Mat test_image = cv::Mat(cv::Size(640, 480), CV_8UC1);
-    std::vector<int16_t> reg_result;
+    std::vector<uint16_t> reg_result;
     cv::Mat reg_mat;
-    cv::Mat result_norm1;
+    cv::Mat result_thresh(480, 640, CV_16UC1);
 
     // load forest
     std::unique_ptr<Forest<PixelSubtractionResponse, DiffEntropyAggregator> > forest =
@@ -207,8 +207,9 @@ int regressOnline(std::string dir_path)
         reg_result = Regressor<PixelSubtractionResponse>::ApplyMat(*forest_shared, *test_data1);
 
         reg_mat = cv::Mat(480, 640, CV_16UC1, (uint16_t*)reg_result.data());
-        cv::normalize(reg_mat, result_norm1, 0, 65535, cv::NORM_MINMAX, CV_16UC1);
-        cv::imshow("output", result_norm1);
+        IPUtils::threshold16(reg_mat, result_thresh, 1201, 65535, 4);
+        result_thresh.convertTo(result_thresh, CV_16U, 54);
+        cv::imshow("output", result_thresh);
         int64 process_time = (((cv::getTickCount() - start_time) / cv::getTickFrequency()) * 1000);
         std::cout << "Process time: " << std::to_string(process_time) << std::endl;
         int wait_time = std::max(2, (int)(LOOP_DELAY - process_time));
@@ -231,7 +232,7 @@ int classifyOnline(std::string dir_path)
     std::string forest_path = dir_path + filename;
     std::cout << "Attempting to deserialize forest from " << forest_path << std::endl;
 
-    std::string img_path = dir_path + "test";
+    std::string img_path = dir_path + "img";
     std::string pathstring;
     cv::Mat test_image = cv::Mat(cv::Size(640, 480), CV_8UC1);
     cv::Mat bins_mat;
@@ -259,7 +260,7 @@ int classifyOnline(std::string dir_path)
         bins_mat = Classifier<PixelSubtractionResponse>::ApplyMat(*forest_shared, *test_data1);
         std::vector<uchar> bins_vec = IPUtils::vectorFromBins(bins_mat, cv::Size(640, 480));
         cv::Mat result_mat1 = cv::Mat(480, 640, CV_8UC1, (int8_t*)bins_vec.data());
-        cv::normalize(result_mat1, result_norm1, 0, 255, cv::NORM_MINMAX, CV_8UC1);
+        result_mat1.convertTo(result_norm1, CV_8U, 63);
         cv::imshow("output", result_norm1);
         int64 process_time = (((cv::getTickCount() - start_time) / cv::getTickFrequency()) * 1000);
         std::cout << "Process time: " << std::to_string(process_time) << std::endl;
@@ -275,12 +276,17 @@ int classifyOnline(std::string dir_path)
 
 int applyMultiLevel()
 {
-    std::string class_path = "/media/james/data_wd/test_full_classifier.frst";
-    std::string e_path[] = {"/media/james/data_wd/test_full_expert0.frst",
-                            "/media/james/data_wd/test_full_expert1.frst",
-                            "/media/james/data_wd/test_full_expert2.frst",
-                            "/media/james/data_wd/test_full_expert3.frst",
-                            "/media/james/data_wd/test_full_expert4.frst"};
+
+    std::cout << "Looking in:\t" << "/media/james/data_wd/training_realsense/" << std::endl << "File prefix?\t";
+    std::string filename;
+    std::cin >> filename;
+
+    std::string class_path = "/media/james/data_wd/training_realsense/" + filename + "_classifier.frst";
+    std::string e_path[] = {"/media/james/data_wd/training_realsense/"+filename+"_expert0.frst",
+                            "/media/james/data_wd/training_realsense/"+filename+"_expert1.frst",
+                            "/media/james/data_wd/training_realsense/"+filename+"_expert2.frst",
+                            "/media/james/data_wd/training_realsense/"+filename+"_expert3.frst",
+                            "/media/james/data_wd/training_realsense/"+filename+"_expert4.frst"};
     std::vector<std::string> expert_path (e_path, e_path+5);
     std::vector<std::unique_ptr<ForestShared<PixelSubtractionResponse, DiffEntropyAggregator> > > experts;
     std::unique_ptr<ForestShared<PixelSubtractionResponse, HistogramAggregator> > classifier;
@@ -324,19 +330,27 @@ int applyMultiLevel()
 
     // Load up an image, apply it to classifier to get weights
     // apply it to all experts, then ans = weighted sum
-    std::string img_path = "/media/james/data_wd/training_images/test";
+    std::string img_path = "/media/james/data_wd/training_realsense/img";
     std::string pathstring;
+    std::string pathstringd;
     cv::Mat test_image;
+    cv::Mat depth_image;
     cv::Mat bins_mat;
     cv::Mat reg_mat;
-    cv::Mat result_norm1;
+    cv::Mat result_thresh(480, 640, CV_16UC1);
+    cv::Mat depth_thresh(480, 640, CV_16UC1);
     std::vector<float> weights_vec(bins);
     
+    cv::namedWindow("output");
+    cv::namedWindow("depth");
+
     for (int i = 0; i < 106; i++)
     {
         int64 start_time = cv::getTickCount();
         pathstring = img_path + std::to_string(i) + "ir.png";
         test_image = cv::imread(pathstring, -1);
+        pathstringd = img_path + std::to_string(i) + "depth.png";
+        depth_image = cv::imread(pathstringd, -1);
         if (!test_image.data)
             continue;
 
@@ -346,23 +360,30 @@ int applyMultiLevel()
         // Get the weights for weighted sum from  classifiaction results. 
         // Essentially represents the probability for any pixel in the image to be in 
         // a certain bin.
+        std::vector<uchar> bins_vec = IPUtils::vectorFromBins(bins_mat, cv::Size(640, 480));
+        weights_vec = IPUtils::weightsFromBins(bins_mat, cv::Size(640,480), false);
+        std::vector<uint16_t> sum_weighted_output((640*480), 0);
         
-        weights_vec = IPUtils::weightsFromBins(bins_mat, cv::Size(640,480));
-        std::vector<int16_t> sum_weighted_output((640*480), 0);
-        
-        for(int j=0;j<bins;j++)
+        for(int j=1;j<bins;j++)
         {
-            std::vector<int16_t> expert_output = Regressor<PixelSubtractionResponse>::ApplyMat(*experts[j], *test_data1);
+            std::vector<uint16_t> expert_output = Regressor<PixelSubtractionResponse>::ApplyMat(*experts[j], *test_data1);
             for(int k=0;k<expert_output.size();k++)
             {
-                sum_weighted_output[k] = sum_weighted_output[k] + int16_t(expert_output[k] * weights_vec[j]);
+                if(bins_vec[k] == 0)
+                    continue;
+                else
+                    sum_weighted_output[k] = sum_weighted_output[k] + uint16_t(expert_output[k] * weights_vec[j]);
             }
             std::cout << std::endl << std::endl;
         }
 
-        reg_mat = cv::Mat(480, 640, CV_16UC1, (int16_t*)sum_weighted_output.data());
-        cv::normalize(reg_mat, result_norm1, 0, 65535, cv::NORM_MINMAX, CV_16UC1);
-        cv::imshow("output", result_norm1);
+        reg_mat = cv::Mat(480, 640, CV_16UC1, (uint16_t*)sum_weighted_output.data());
+        IPUtils::threshold16(reg_mat, result_thresh, 1201, 65535, 4);
+        result_thresh.convertTo(result_thresh, CV_16U, 54);
+        IPUtils::threshold16(depth_image, depth_thresh, 1201, 65535, 4);
+        depth_thresh.convertTo(depth_thresh, CV_16U, 54);
+        cv::imshow("output", result_thresh);
+        cv::imshow("depth", depth_thresh);
 
         int64 process_time = (((cv::getTickCount() - start_time) / cv::getTickFrequency()) * 1000);
         std::cout << "Process time: " << std::to_string(process_time) << std::endl;
@@ -379,7 +400,33 @@ int applyMultiLevel()
 
 void testFunction()
 {
-   applyMultiLevel();
+    cv::Mat ir_mat = cv::imread("/media/james/data_wd/training_images/test0ir.png", -1);
+    cv::Mat depth_mat = cv::imread("/media/james/data_wd/training_images/test0depth.png", -1);
+    std::string path_string = "/media/james/data_wd/training_images/test0ir.png";
+    cv::Point img_point(1,2);
+    cv::Mat* mat_ptr = &ir_mat;
+
+    std::cout << "ir mat size: " << sizeof(ir_mat) << std::endl;
+    std::cout << "ir mat data size: " << sizeof(*ir_mat.data) << std::endl;
+    std::cout << "depth mat size: " << sizeof(depth_mat) << std::endl;
+    std::cout << "depth mat data size: " << sizeof(*depth_mat.data) << std::endl;
+    std::cout << "string size: " << sizeof(path_string) << std::endl;
+    std::cout << "int size: " << sizeof(1) << std::endl;
+    std::cout << "point size: " << sizeof(img_point) << std::endl;
+    std::cout << "mat ptr size: " << sizeof(mat_ptr) << std::endl;
+
+    int64 start_time = cv::getTickCount();
+    std::cout << to_string(ir_mat.at<int8_t>(12,153)) << std::endl;
+    int64 process_time = (cv::getTickCount() - start_time) ;
+    std::cout << "Process time: " << std::to_string(process_time) << std::endl;
+
+    start_time = cv::getTickCount();
+    cv::Mat ir_mat1 = cv::imread("/media/james/data_wd/training_images/test1ir.png", -1);
+    std::cout << to_string(ir_mat1.at<int8_t>(12,153)) << std::endl;
+    process_time = (cv::getTickCount() - start_time) ;
+    std::cout << "Process time: " << std::to_string(process_time) << std::endl;
+
+    std::cout << IPUtils::getTypeString(depth_mat.type()) << std::endl;
 }
 
 int growSomeForests(ProgramParameters& progParams)
@@ -447,7 +494,7 @@ void printMenu()
     std::cout << std::endl;
     std::cout << "Enter 1 to train Classification Forest in parallel" << std::endl;
     std::cout << "Enter 2 to train Regression Forest in parallel" << std::endl;
-    std::cout << "Enter 6 to compare a depth image and classified image" << std::endl;
+    std::cout << "Enter 6 to do applyMultiLevel" << std::endl;
     std::cout << "Enter 7 to test Regression Forest" << std::endl;
     std::cout << "Enter 8 to test Classification Forest" << std::endl;
     std::cout << "Enter q to quit" << std::endl;
@@ -458,7 +505,7 @@ void interactiveMode()
 {
     bool cont = true;
     std::string in;
-    std::string forest_path = FILE_PATH;
+    std::string forest_path = "/media/james/data_wd/training_realsense/";
     printMenu();
 
     // Poll for user input to chose program mode
@@ -469,7 +516,7 @@ void interactiveMode()
 
         if (in.compare("6") == 0)
         {
-            //testMethod(forest_path);
+            applyMultiLevel();
             printMenu();
         }
         else if (in.compare("7") == 0)
