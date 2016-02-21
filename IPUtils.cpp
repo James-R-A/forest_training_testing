@@ -255,16 +255,30 @@ std::vector<float> IPUtils::weightsFromBins(cv::Mat bin_mat, cv::Size image_size
     std::vector<int> bin_totals(bins, 0);
     std::vector<float> weights(bins, 0);
     int start = include_zero? 0:1;
-    int total = 0;
-    // TODO: change so include zero class or not include zero class
+    
     for(int i=0;i<samples;i++)
     {
         bin_totals[bin_vector[i]]++;
     }
-      
-    for(int i=start;i<bins;i++)
+    
+    if(include_zero)  
     {
-        weights[i] = float(bin_totals[i]) / samples;
+        for(int i=0;i<bins;i++)
+        {
+            weights[i] = float(bin_totals[i]) / samples;
+        }
+    }
+    else
+    {
+        int total = 0;
+        for(int i=1;i<bins;i++)
+        {
+            total += bin_totals[i];
+        }
+        for(int i=1;i<bins;i++)
+        {
+            weights[i] = float(bin_totals[i])/total;
+        }
     }
     
     return weights;
