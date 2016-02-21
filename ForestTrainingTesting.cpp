@@ -363,7 +363,7 @@ int applyMultiLevel()
         std::vector<uchar> bins_vec = IPUtils::vectorFromBins(bins_mat, cv::Size(640, 480));
         weights_vec = IPUtils::weightsFromBins(bins_mat, cv::Size(640,480), false);
         std::vector<uint16_t> sum_weighted_output((640*480), 0);
-        
+
         for(int j=1;j<bins;j++)
         {
             std::vector<uint16_t> expert_output = Regressor<PixelSubtractionResponse>::ApplyMat(*experts[j], *test_data1);
@@ -374,9 +374,7 @@ int applyMultiLevel()
                 else
                     sum_weighted_output[k] = sum_weighted_output[k] + uint16_t(expert_output[k] * weights_vec[j]);
             }
-            std::cout << std::endl << std::endl;
         }
-
         reg_mat = cv::Mat(480, 640, CV_16UC1, (uint16_t*)sum_weighted_output.data());
         IPUtils::threshold16(reg_mat, result_thresh, 1201, 65535, 4);
         result_thresh.convertTo(result_thresh, CV_16U, 54);
@@ -384,7 +382,7 @@ int applyMultiLevel()
         depth_thresh.convertTo(depth_thresh, CV_16U, 54);
         cv::imshow("output", result_thresh);
         cv::imshow("depth", depth_thresh);
-
+        
         int64 process_time = (((cv::getTickCount() - start_time) / cv::getTickFrequency()) * 1000);
         std::cout << "Process time: " << std::to_string(process_time) << std::endl;
         int wait_time = std::max(2, (int)(LOOP_DELAY - process_time));
