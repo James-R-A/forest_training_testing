@@ -64,29 +64,16 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         /// Loads a data set from a directory of IR and depth images
         /// Loads in a classification problem format
         /// </summary>
-        /// <param name="path">Path of directory containing images to be read.</param>
-        /// <param name="img_size">The expected image size of the input data</param>
-        /// <param name="depth_raw"> depth data type, raw, or in mm </param>
-        /// <param name="number">Number of images to be loaded</param>
-        /// <param name="start">Image number to start at (default 0)</param>
-        /// <param name="num_classes"> Number of classes to classify depth data </param>
-        /// <param name="zero_class_label"> Is there a seperate class for zero output? </param>
-        /// <param name="patch_size">Size of pixel patch to load (default 1, i.e. single pixel)</param>
+        /// <param name="progParams">A program parameters object which defines 
+        ///  how the program will run, its inputs, and its outputs </param>
         static  std::unique_ptr<DataPointCollection> LoadImagesClass(ProgramParameters& progParams);
 
         /// <summary>
         /// Loads a data set from a directory of IR and depth images
         /// Loads in a regression problem format
         /// </summary>
-        /// <param name="path">Path of directory containing images to be read.</param>
-        /// <param name="img_size">The expected image size of the input data</param>
-        /// <param name="depth_raw"> depth data type, raw, or in mm </param>
-        /// <param name="number">Number of images to be loaded</param>
-        /// <param name="start">Image number to start at (default 0)</param>
-        /// <param name="num_classes"> Number of classes to classify depth data </param>
-        /// <param name="zero_class_label"> Is there a seperate class for zero output? </param>
-        /// <param name="class_number"> which class data subset to load, -1 for all </param>
-        /// <param name="patch_size">Size of pixel patch to load (default 1, i.e. single pixel)</param>
+        /// <param name="progParams">A program parameters object which defines 
+        ///  how the program will run, its inputs, and its outputs </param>
         static  std::unique_ptr<DataPointCollection> LoadImagesRegression(ProgramParameters& progParams, int class_number=-1);
 
         static std::unique_ptr<DataPointCollection> LoadMat(cv::Mat, cv::Size img_size);
@@ -184,8 +171,124 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         }
     };
 
-    // Here would be a good place to add parsing functionality and 
-    // things like string to float conversion
-    // A couple of file parsing utilities, exposed here for testing only.
+    class LMDataPointCollection: public IDataPointCollection
+    {
+        // If we're doing expert regression, we need all the point locations
+        // otherwise, this isn't used
+        //std::vector<int64_t> data_points_;
 
+        // Vector of input infrared images
+        std::vector<cv::Mat> images_;
+        // vector of depth labels
+        std::vector<uint8_t> labels_;
+        // because this weird return type is what we need for GetDataPoint()
+        std::tuple<cv::Mat*, cv::Point> data_point;
+        // Basically number of pixels in an image
+        int step;
+        cv::Size image_size;
+        // Related to patch size, gets passed on to other stuff
+        int dimension_;
+        // Number of images in the DataPointCollection
+        int image_vec_size;
+        // Raw depth flag. used in classification
+        bool depth_raw;
+        // vector of pixel-to-label mapping
+        std::vector<int> pixelLabels_;
+        // Expected number of data points.
+         int64_t n_data_points;
+        
+    public:
+
+        static std::unique_ptr<LMDataPointCollection> LoadImagesClass(
+            ProgramParameters& progParams);
+
+        /// <summary>
+        /// Do these data have class labels?
+        /// </summary>
+        bool HasLabels() const
+        {
+            return labels_.size() != 0;
+        }
+
+        /// <summary>
+        /// How many unique class labels are there?
+        /// </summary>
+        /// <returns>The number of unique class labels</returns>
+        int CountClasses() const
+        {
+            if (!HasLabels())
+                throw std::runtime_error("Unlabelled data.");
+            return (*std::max_element(pixelLabels_.begin(), pixelLabels_.end())) + 1;
+        }
+
+        int CountImages() const
+        {
+            return image_vec_size;
+        }
+
+        /// <summary>
+        /// Do these data have target values (e.g. for regression)?
+        /// </summary>
+        bool HasTargetValues() const
+        {
+            return false;
+        }
+
+        /// <summary>
+        /// Count the data points in this collection.
+        /// </summary>
+        /// <returns>The number of data points</returns>
+        unsigned int Count() const
+        {
+            return n_data_points;
+        }
+
+        /// <summary>
+        /// Basically the patch area.
+        /// </summary>
+        int Dimensions() const
+        {
+            return dimension_;
+        }
+
+        bool DepthRaw() const
+        {
+            return depth_raw;
+        }
+
+        /// <summary>
+        /// Get the specified data point.
+        /// </summary>
+        /// <param name="i">Zero-based data point index.</param>
+        /// <returns>Pointer to the first element of the data point.</returns>
+        const std::tuple<cv::Mat*,cv::Point>* GetDataPoint(int i)
+        {
+            // assuming compiler is clever enough to get quotient and remainder 
+            // in singe operation
+            int image_index = i / step;
+            int position_rem = i % step;
+            int row = position_rem / image_size.width;
+            int column = position_rem % image_size.width;
+            std::get<0>(data_point) = &images_[image_index];
+            std::get<1>(data_point) = cv::Point(column, row);
+            
+            return &data_point;
+        }
+
+        /// <summary>
+        /// Get the class label for the specified data point (or raise an
+        /// exception if these data points do not have associated labels).
+        /// </summary>
+        /// <param name="i">Zero-based data point index</param>
+        /// <returns>A zero-based integer class label.</returns>
+        int GetIntegerLabel(int i) const
+        {
+            //TODO
+            if (!HasLabels())
+                throw std::runtime_error("Data have no associated class labels.");
+
+            return (int)labels_[i]; // may throw an exception if index is out of range
+        }
+        
+    };
 }   }   }

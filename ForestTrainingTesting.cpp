@@ -274,19 +274,19 @@ int classifyOnline(std::string dir_path)
     return 0;
 }
 
-int applyMultiLevel()
+int applyMultiLevel(std::string forest_path)
 {
 
-    std::cout << "Looking in:\t" << "/media/james/data_wd/training_realsense/" << std::endl << "File prefix?\t";
+    std::cout << "Looking in:\t" << forest_path << std::endl << "File prefix?\t";
     std::string filename;
     std::cin >> filename;
 
-    std::string class_path = "/media/james/data_wd/training_realsense/" + filename + "_classifier.frst";
-    std::string e_path[] = {"/media/james/data_wd/training_realsense/"+filename+"_expert0.frst",
-                            "/media/james/data_wd/training_realsense/"+filename+"_expert1.frst",
-                            "/media/james/data_wd/training_realsense/"+filename+"_expert2.frst",
-                            "/media/james/data_wd/training_realsense/"+filename+"_expert3.frst",
-                            "/media/james/data_wd/training_realsense/"+filename+"_expert4.frst"};
+    std::string class_path = forest_path + filename + "_classifier.frst";
+    std::string e_path[] = {forest_path + filename + "_expert0.frst",
+                            forest_path + filename + "_expert1.frst",
+                            forest_path + filename + "_expert2.frst",
+                            forest_path + filename + "_expert3.frst",
+                            forest_path + filename + "_expert4.frst"};
     std::vector<std::string> expert_path (e_path, e_path+5);
     std::vector<std::unique_ptr<ForestShared<PixelSubtractionResponse, DiffEntropyAggregator> > > experts;
     std::unique_ptr<ForestShared<PixelSubtractionResponse, HistogramAggregator> > classifier;
@@ -503,7 +503,8 @@ void interactiveMode()
 {
     bool cont = true;
     std::string in;
-    std::string forest_path = "/media/james/data_wd/training_realsense/";
+    std::string forest_path = "/home/james/workspace/forests/";
+    //std::string forest_path = "/media/james/data_wd/training_realsense/";
     printMenu();
 
     // Poll for user input to chose program mode
@@ -514,7 +515,7 @@ void interactiveMode()
 
         if (in.compare("6") == 0)
         {
-            applyMultiLevel();
+            applyMultiLevel(forest_path);
             printMenu();
         }
         else if (in.compare("7") == 0)

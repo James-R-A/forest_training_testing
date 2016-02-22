@@ -48,7 +48,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         result->dimension_ = progParams.PatchSize * progParams.PatchSize;
         result->depth_raw = progParams.DepthRaw;
         result->image_size = img_size;
-        result->data_vec_size = number * img_size.height * img_size.width;
+        result->data_vec_size = int64_t(number * img_size.height * img_size.width);
 
         // Data allocated using data_.resize(result->data_vec_size) 
         // then result->data_[n] = value; because it's faster than push_back
@@ -159,7 +159,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         result->dimension_ = progParams.PatchSize * progParams.PatchSize;
         result->depth_raw = progParams.DepthRaw;
         result->image_size = img_size;
-        result->data_vec_size = number * img_size.height * img_size.width;
+        result->data_vec_size = int64_t(number * img_size.height * img_size.width);
 
         // Data allocated using data_.resize(result->data_vec_size) 
         // then result->data_[n] = value; because it's faster than push_back
@@ -288,6 +288,112 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
             }
         }
 
+        return result;
+    }
+
+    std::unique_ptr<LMDataPointCollection> LMDataPointCollection::LoadImagesClass(
+        ProgramParameters& progParams)
+    {
+        std::string prefix = progParams.InputPrefix;
+        cv::Size img_size = cv::Size(progParams.ImgWidth, progParams.ImgHeight);
+
+        // for shorthand
+        std::string path = progParams.TrainingImagesPath;
+        if (!IPUtils::dirExists(path))
+            throw std::runtime_error("Failed to find directory:\t" + path);
+
+        if (progParams.PatchSize % 2 == 0)
+            throw std::runtime_error("Patch size must be odd");
+        
+        int number = progParams.NumberTrainingImages;
+        int first = progParams.TrainingImagesStart;
+        int last = first + number -1;
+
+        // Set up DataPointCollection object
+        std::unique_ptr<LMDataPointCollection> result = std::unique_ptr<LMDataPointCollection>(new LMDataPointCollection());
+        result->dimension_ = progParams.PatchSize * progParams.PatchSize;
+        result->depth_raw = progParams.DepthRaw;
+        result->image_size = img_size;
+        result->n_data_points = int64_t(number * img_size.height * img_size.width);
+        std::get<0>(result->data_point) = NULL;
+        std::get<1>(result->data_point) = cv::Point(0,0);
+
+         
+        result->images_.resize(number);
+        int img_no = 0;
+        int label_no = 0;
+        
+        result->labels_.resize(result->n_data_points);
+        
+        // Variables affecting class formation
+        bool zero_class = true;
+        int total_classes = progParams.Bins;
+        // This max parameter is important. Don't forget this is aimed at 16 bit unsigned ints, 
+        // so the viable range is 0-65535. 
+        // If not using RAW depth data format, it's measured in mm, so be sensible (i.e. 1000 - 1500 mm?)
+        int max = progParams.DepthRaw ? 65000 : 1200;
+        result->pixelLabels_ = IPUtils::generateDepthBinMap(true, total_classes, max);
+        
+        cv::Mat ir_image, ir_preprocessed, depth_image, depth_labels;
+        std::string ir_path;
+        std::string depth_path;
+        cv::Size ir_size, depth_size;
+
+        for (int i = first; i <= last;i++)
+        {
+            // generate individual image paths
+            ir_path = path + "/" + prefix + std::to_string(i) + "ir.png";
+            depth_path = path + "/" + prefix + std::to_string(i) + "depth.png";
+
+            //std::cout << std::to_string(i) << std::endl;
+            // read depth and ir images
+            ir_image = cv::imread(ir_path, -1);
+            depth_image = cv::imread(depth_path, -1);
+
+            // if program fails to open image
+            if(!ir_image.data)
+            {
+                std::cerr << "Failed to open image:\n\t" + ir_path << std::endl;
+                continue;
+            }
+            if (!depth_image.data)
+            {
+                std::cerr << "Failed to open image:\n\t" + depth_path << std::endl;
+                continue;
+            }
+            // If the datatypes in the images are incorrect
+            if (IPUtils::getTypeString(ir_image.type()) != "8UC1")
+                throw std::runtime_error("Encountered image with unexpected content type:\n\t" + ir_path);
+
+            if (IPUtils::getTypeString(depth_image.type()) != "16UC1")
+                throw std::runtime_error("Encountered image with unexpected content type:\n\t" + depth_path);
+
+            ir_size = ir_image.size();
+            depth_size = depth_image.size();
+            if (ir_size != depth_size)
+                throw std::runtime_error("Depth and IR images not the same size:\n\t" + ir_path + depth_path);
+
+            // Send the ir image for preprocessing, default values used for now
+            ir_preprocessed = IPUtils::preProcess(ir_image);
+            result->images_[img_no] = ir_preprocessed;
+
+            // Create matrix of depth labels (ie depth bins)
+            depth_labels = createLabelMatrix(depth_image, result->pixelLabels_);
+            // iterate through depth_labels matrix and add each element
+            // to results.
+            // Also set up data vector
+            for (int r = 0; r < depth_size.height; r++)
+            {
+                uchar* label_pixel = depth_labels.ptr<uchar>(r);
+                for (int c = 0; c < depth_size.width; c++)
+                {
+                    result->labels_[label_no] = label_pixel[c];
+                    label_no++;
+                }
+            }
+            img_no++;
+        }
+        
         return result;
     }
 
