@@ -429,19 +429,7 @@ void testFunction()
 
 int growSomeForests(ProgramParameters& progParams)
 {
-    if(progParams.ForestType == ForestDescriptor::Classification || progParams.ForestType == ForestDescriptor::All)
-    {
-        try
-        {
-            std::cout << "\nAttempting to grow classifier" << std::endl;
-            trainClassificationPar(progParams);
-        }
-        catch (const std::runtime_error& e)
-        {
-            std::cerr << e.what() << std::endl;
-        }
-    }
-
+    
     if(progParams.ForestType == ForestDescriptor::Regression)
     {
         try
@@ -484,6 +472,18 @@ int growSomeForests(ProgramParameters& progParams)
         }
     }   
     
+    if(progParams.ForestType == ForestDescriptor::Classification || progParams.ForestType == ForestDescriptor::All)
+    {
+        try
+        {
+            std::cout << "\nAttempting to grow classifier" << std::endl;
+            trainClassificationPar(progParams);
+        }
+        catch (const std::runtime_error& e)
+        {
+            std::cerr << e.what() << std::endl;
+        }
+    }
 }
 
 void printMenu()
