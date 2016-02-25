@@ -80,12 +80,13 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
     int Bins;
     int ImgHeight;
     int ImgWidth;
+    bool LM;
 
     ProgramParameters()
     {
       OutputFilename = "default";
-      TrainingImagesPath = "/media/james/data_wd";
-      InputPrefix = "test";
+      TrainingImagesPath = "/media/james/data_wd/training_realsense";
+      InputPrefix = "img";
       NumberTrainingImages = 10;
       TrainingImagesStart = 0;
       ForestType = ForestDescriptor::Classification;
@@ -96,6 +97,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       Bins = 5;
       ImgHeight = 480;
       ImgWidth = 640;
+      LM = false;
     }
 
     bool setParam(std::string parameter, std::string value)
@@ -254,6 +256,13 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         int n= std::stoi(value);
         ImgHeight = n;
       }
+      else if(parameter.compare("LOW_MEM") == 0)
+      {
+        if(value.compare("YES") == 0)
+          LM = true;
+        else
+          LM = false;
+      }
       else
         return false;
 
@@ -288,6 +297,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       std::cout << "ExpertClassNo: \t\t\t" << std::to_string(ExpertClassNo) << std::endl;
       std::cout << "Verbose: \t\t\t" << (Tpc.Verbose? "Yes" : "no") << std::endl;
       std::cout << "Max threads to use: \t\t" << std::to_string(Tpr.MaxThreads) << std::endl;
+      std::cout << "Low Memory Implementation: \t" << (LM? "Yes": "No") << std::endl;
 
 
     }

@@ -1,4 +1,6 @@
 #pragma once
+#include <tuple>
+#include <opencv2/opencv.hpp>
 #include "Random.h"
 // This file defines interfaces used during decision forest training and
 // evaluation. These interfaces are intended to be implemented within client
@@ -27,6 +29,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
   public:
     virtual ~IDataPointCollection() {};
     virtual unsigned int Count() const=0;
+    virtual int GetIntegerLabel(int i) const=0;
   };
 
   /// <summary>

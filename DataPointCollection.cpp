@@ -48,7 +48,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         result->dimension_ = progParams.PatchSize * progParams.PatchSize;
         result->depth_raw = progParams.DepthRaw;
         result->image_size = img_size;
-        result->data_vec_size = int64_t(number * img_size.height * img_size.width);
+        result->data_vec_size = (unsigned int)(number * img_size.height * img_size.width);
 
         // Data allocated using data_.resize(result->data_vec_size) 
         // then result->data_[n] = value; because it's faster than push_back
@@ -159,7 +159,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         result->dimension_ = progParams.PatchSize * progParams.PatchSize;
         result->depth_raw = progParams.DepthRaw;
         result->image_size = img_size;
-        result->data_vec_size = int64_t(number * img_size.height * img_size.width);
+        result->data_vec_size = (unsigned int)(number * img_size.height * img_size.width);
 
         // Data allocated using data_.resize(result->data_vec_size) 
         // then result->data_[n] = value; because it's faster than push_back
@@ -311,20 +311,18 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
         // Set up DataPointCollection object
         std::unique_ptr<LMDataPointCollection> result = std::unique_ptr<LMDataPointCollection>(new LMDataPointCollection());
+        result->image_vec_size = number;
         result->dimension_ = progParams.PatchSize * progParams.PatchSize;
         result->depth_raw = progParams.DepthRaw;
         result->image_size = img_size;
-        result->n_data_points = int64_t(number * img_size.height * img_size.width);
-        std::get<0>(result->data_point) = NULL;
-        std::get<1>(result->data_point) = cv::Point(0,0);
-
-         
-        result->images_.resize(number);
+        result->step = img_size.height * img_size.width;
+        result->n_data_points = (unsigned int)(number * img_size.height * img_size.width);
+                
+        result->images_.resize(result->image_vec_size);
+        result->labels_.resize(result->n_data_points);
         int img_no = 0;
         int label_no = 0;
-        
-        result->labels_.resize(result->n_data_points);
-        
+
         // Variables affecting class formation
         bool zero_class = true;
         int total_classes = progParams.Bins;
@@ -381,7 +379,6 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
             depth_labels = createLabelMatrix(depth_image, result->pixelLabels_);
             // iterate through depth_labels matrix and add each element
             // to results.
-            // Also set up data vector
             for (int r = 0; r < depth_size.height; r++)
             {
                 uchar* label_pixel = depth_labels.ptr<uchar>(r);
@@ -392,8 +389,8 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
                 }
             }
             img_no++;
+            
         }
-        
         return result;
     }
 

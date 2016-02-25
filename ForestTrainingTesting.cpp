@@ -59,6 +59,38 @@ int trainClassificationPar(ProgramParameters& progParams)
     return 0;
 }
 
+int trainClassificationParLM(ProgramParameters& progParams)
+{
+
+    std::string filename = progParams.TrainingImagesPath + "/" + progParams.OutputFilename + "_classifier.frst";
+     
+    std::cout << "Searching for some IR and depth images in " << progParams.TrainingImagesPath << std::endl;
+    
+    std::unique_ptr<LMDataPointCollection> training_data = LMDataPointCollection::LoadImagesClass(progParams);
+    
+    int images = training_data->CountImages();
+    std::cout << "Data loaded from images: " << std::to_string(images) << std::endl;
+    std::cout << "of size: " << std::to_string(progParams.ImgHeight * progParams.ImgWidth) << std::endl;
+    std::cout << "Total points:" << std::to_string(training_data->Count()) << std::endl;
+ 
+    std::cout << "\nAttempting training" << std::endl;
+    try
+    {
+        std::unique_ptr<Forest<PixelSubtractionResponse, HistogramAggregator> > forest = 
+            Classifier<PixelSubtractionResponse>::TrainParLM(*training_data, progParams.Tpc);
+
+        forest->Serialize(filename);
+        std::cout << "Training complete, forest saved in :" << filename << std::endl;
+    }
+    catch (const std::runtime_error& e)
+    {
+        std::cout << "Training Failed" << std::endl;
+        std::cerr << e.what() << std::endl;
+    }
+
+    return 0;
+}
+
 int trainRegressionPar(ProgramParameters& progParams, int class_expert_no = -1)
 {
     std::string file_suffix;
@@ -398,33 +430,18 @@ int applyMultiLevel(std::string forest_path)
 
 void testFunction()
 {
-    cv::Mat ir_mat = cv::imread("/media/james/data_wd/training_images/test0ir.png", -1);
-    cv::Mat depth_mat = cv::imread("/media/james/data_wd/training_images/test0depth.png", -1);
-    std::string path_string = "/media/james/data_wd/training_images/test0ir.png";
-    cv::Point img_point(1,2);
-    cv::Mat* mat_ptr = &ir_mat;
+    ProgramParameters progParams;
+    progParams.LM = true;
 
-    std::cout << "ir mat size: " << sizeof(ir_mat) << std::endl;
-    std::cout << "ir mat data size: " << sizeof(*ir_mat.data) << std::endl;
-    std::cout << "depth mat size: " << sizeof(depth_mat) << std::endl;
-    std::cout << "depth mat data size: " << sizeof(*depth_mat.data) << std::endl;
-    std::cout << "string size: " << sizeof(path_string) << std::endl;
-    std::cout << "int size: " << sizeof(1) << std::endl;
-    std::cout << "point size: " << sizeof(img_point) << std::endl;
-    std::cout << "mat ptr size: " << sizeof(mat_ptr) << std::endl;
+    std::cout << "Searching for some IR and depth images in " << progParams.TrainingImagesPath << std::endl;
+    
+    std::unique_ptr<LMDataPointCollection> training_data = LMDataPointCollection::LoadImagesClass(progParams);
 
-    int64 start_time = cv::getTickCount();
-    std::cout << to_string(ir_mat.at<int8_t>(12,153)) << std::endl;
-    int64 process_time = (cv::getTickCount() - start_time) ;
-    std::cout << "Process time: " << std::to_string(process_time) << std::endl;
-
-    start_time = cv::getTickCount();
-    cv::Mat ir_mat1 = cv::imread("/media/james/data_wd/training_images/test1ir.png", -1);
-    std::cout << to_string(ir_mat1.at<int8_t>(12,153)) << std::endl;
-    process_time = (cv::getTickCount() - start_time) ;
-    std::cout << "Process time: " << std::to_string(process_time) << std::endl;
-
-    std::cout << IPUtils::getTypeString(depth_mat.type()) << std::endl;
+    int images = training_data->CountImages();
+    std::cout << "Data loaded from images: " << std::to_string(images) << std::endl;
+    std::cout << "of size: " << std::to_string(progParams.ImgHeight * progParams.ImgWidth) << std::endl;
+    std::cout << "Total points:" << std::to_string(training_data->Count()) << std::endl;
+    std::cout << "Step: " << std::to_string(training_data->GetStep()) << std::endl;
 }
 
 int growSomeForests(ProgramParameters& progParams)
@@ -477,7 +494,10 @@ int growSomeForests(ProgramParameters& progParams)
         try
         {
             std::cout << "\nAttempting to grow classifier" << std::endl;
-            trainClassificationPar(progParams);
+            if(!progParams.LM)
+                trainClassificationPar(progParams);
+            else
+                trainClassificationParLM(progParams);
         }
         catch (const std::runtime_error& e)
         {
@@ -582,9 +602,10 @@ ProgramParameters getParamsFromFile(std::string& params_path)
                                     "FOREST_OUTPUT",
                                     "INPUT_PREFIX",
                                     "IMG_WIDTH",
-                                    "IMG_HEIGHT"};
+                                    "IMG_HEIGHT",
+                                    "LOW_MEM"};
 
-    int num_categories = 20;
+    int num_categories = 21;
     try
     {
         ifstream params_file(params_path);

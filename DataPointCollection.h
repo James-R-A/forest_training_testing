@@ -44,7 +44,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         std::vector<cv::Mat> images_;
         cv::Size image_size;
         int dimension_;
-        int64_t data_vec_size;
+        unsigned int data_vec_size;
 
         bool depth_raw;
         
@@ -132,9 +132,9 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         /// </summary>
         /// <param name="i">Zero-based data point index.</param>
         /// <returns>Pointer to the first element of the data point.</returns>
-        const std::tuple<cv::Mat*,cv::Point>* GetDataPoint(int i) const
+        std::tuple<cv::Mat*,cv::Point> GetDataPoint(int i) const
         {
-            return &data_[i];
+            return data_[i];
         }
 
         /// <summary>
@@ -182,7 +182,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         // vector of depth labels
         std::vector<uint8_t> labels_;
         // because this weird return type is what we need for GetDataPoint()
-        std::tuple<cv::Mat*, cv::Point> data_point;
+        //std::tuple<cv::Mat*, cv::Point> data_point;
         // Basically number of pixels in an image
         int step;
         cv::Size image_size;
@@ -195,7 +195,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         // vector of pixel-to-label mapping
         std::vector<int> pixelLabels_;
         // Expected number of data points.
-         int64_t n_data_points;
+        unsigned int n_data_points;
         
     public:
 
@@ -256,23 +256,31 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
             return depth_raw;
         }
 
+
+        int GetStep()
+        {
+            return step;
+        }
         /// <summary>
         /// Get the specified data point.
         /// </summary>
         /// <param name="i">Zero-based data point index.</param>
         /// <returns>Pointer to the first element of the data point.</returns>
-        const std::tuple<cv::Mat*,cv::Point>* GetDataPoint(int i)
+        std::tuple<const cv::Mat*,cv::Point> GetDataPoint(int i) const
         {
             // assuming compiler is clever enough to get quotient and remainder 
             // in singe operation
+            std::cout << "index_in: " << std::to_string(i) << std::endl;
             int image_index = i / step;
+            std::cout << "imgage_index: " << std::to_string(image_index) << std::endl;
             int position_rem = i % step;
+            std::cout << "position_remainder: " << std::to_string(position_rem) << std::endl;
             int row = position_rem / image_size.width;
+            std::cout << "position_row: " << std::to_string(row) << std::endl;
             int column = position_rem % image_size.width;
-            std::get<0>(data_point) = &images_[image_index];
-            std::get<1>(data_point) = cv::Point(column, row);
-            
-            return &data_point;
+            std::cout << "position_col: " << std::to_string(column) << std::endl;
+                      
+            return std::tuple<const cv::Mat*, cv::Point>(&images_[image_index], cv::Point(column, row));
         }
 
         /// <summary>

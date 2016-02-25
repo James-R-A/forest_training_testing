@@ -13,10 +13,10 @@ namespace MicrosoftResearch {
             float RandomHyperplaneFeatureResponse::GetResponse(const IDataPointCollection& data, unsigned int index) const
             {
                 const DataPointCollection& concreteData = (const DataPointCollection&)(data);
-                const std::tuple<cv::Mat*, cv::Point>* datum = concreteData.GetDataPoint(index);
+                std::tuple<cv::Mat*, cv::Point> datum = concreteData.GetDataPoint(index);
 
-                cv::Mat* datum_matp = std::get<0>(*datum);
-                cv::Point datum_point = std::get<1>(*datum);
+                cv::Mat* datum_matp = std::get<0>(datum);
+                cv::Point datum_point = std::get<1>(datum);
                 cv::Size datum_mat_size = datum_matp->size();
                 cv::Rect boundry = cv::Rect(0, 0, datum_mat_size.width, datum_mat_size.height);
 
@@ -46,35 +46,42 @@ namespace MicrosoftResearch {
 
             float PixelSubtractionResponse::GetResponse(const IDataPointCollection& data, unsigned int index) const
             {
-                const DataPointCollection& concreteData = (const DataPointCollection&)(data);
-
-                const std::tuple<cv::Mat*, cv::Point>* datum = concreteData.GetDataPoint(index);
-                
-                cv::Mat* datum_matp = std::get<0>(*datum);
-                cv::Point datum_point = std::get<1>(*datum);
+                const LMDataPointCollection& concreteData = (const LMDataPointCollection&)(data);
+                std::tuple<const cv::Mat*, cv::Point> datum = concreteData.GetDataPoint(index);
+                const cv::Mat* datum_matp = std::get<0>(datum);
+                cv::Point datum_point = std::get<1>(datum);
+                std::cout << "point: " << std::to_string(datum_point.x) << "," << std::to_string(datum_point.y) << std::endl;
+                std::cout << "f4 " << std::endl;
                 cv::Size datum_mat_size = datum_matp->size();
+                std::cout << "f5 " << std::endl;
                 cv::Rect boundry = cv::Rect(0, 0, datum_mat_size.width, datum_mat_size.height);
-
+                std::cout << "f6 " << std::endl;
                 cv::Point probe_point_0;
+                std::cout << "f7 " << std::endl;
                 cv::Point probe_point_1;
-                
+                std::cout << "f8 " << std::endl;
                 float pixel_value_0;
+                std::cout << "f9 " << std::endl;
                 float pixel_value_1;
-                
+                std::cout << "f10 " << std::endl;
                 probe_point_0 = datum_point + offset_0;
+                std::cout << "f11 " << std::endl;
                 if (probe_point_0.inside(boundry))
                     pixel_value_0 = (float)(datum_matp->at<uchar>(probe_point_0));
                 else
                     pixel_value_0 = 0;
 
+                std::cout << "f12 " << std::endl;
                 probe_point_1 = datum_point + offset_1;
+                std::cout << "f13 " << std::endl;
                 if (probe_point_1.inside(boundry))
                     pixel_value_1 = (float)(datum_matp->at<uchar>(probe_point_1));
                 else
                     pixel_value_1 = 0;
                 
+                std::cout << "f14 " << std::endl;
                 float response = pixel_value_0 - pixel_value_1;
-                
+                std::cout << "f15 " << std::endl;
                 return response;
             }
         }

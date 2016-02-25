@@ -71,7 +71,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
     void HistogramAggregator::Aggregate(const IDataPointCollection& data, unsigned int index)
     {
-        const DataPointCollection& concreteData = (const DataPointCollection&)(data);
+        const IDataPointCollection& concreteData = (const IDataPointCollection&)(data);
 
         bins_[concreteData.GetIntegerLabel((int)index)]++;
         sampleCount_ += 1;

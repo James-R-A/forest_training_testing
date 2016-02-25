@@ -121,29 +121,26 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       for (DataPointIndex i = 0; i < indices_.size(); i++)
         indices_[i] = i;
 
-    parentStatistics_ = trainingContext_.GetStatisticsAggregator();
-
-    leftChildStatistics_ = trainingContext_.GetStatisticsAggregator();
-    rightChildStatistics_ = trainingContext_.GetStatisticsAggregator();
-
-    responses_.resize(data.Count());
-
+      parentStatistics_ = trainingContext_.GetStatisticsAggregator();
+      leftChildStatistics_ = trainingContext_.GetStatisticsAggregator();
+      rightChildStatistics_ = trainingContext_.GetStatisticsAggregator();
+      responses_.resize(data.Count());
       threadLocalData_.resize(maxThreads_);
       for (int threadIndex = 0; threadIndex < maxThreads_; threadIndex++)
         // Note use of placement new operator to initialize already-allocated memory
         new (&threadLocalData_[threadIndex]) ThreadLocalData(random, trainingContext_, parameters_, data_);
+
     }
 
     void TrainNodesRecurse(std::vector<Node<F, S> >& nodes, NodeIndex nodeIndex, DataPointIndex i0, DataPointIndex i1, int recurseDepth)
     {
       assert(nodeIndex < nodes.size());
       progress_[Verbose] << Tree<F, S>::GetPrettyPrintPrefix(nodeIndex) << i1 - i0 << ": ";
-
+      
       // First aggregate statistics over the samples at the parent node
       parentStatistics_.Clear();
     for (DataPointIndex i = i0; i < i1; i++)
-        parentStatistics_.Aggregate(data_, indices_[i]);
-
+      parentStatistics_.Aggregate(data_, indices_[i]);
       // Copy parent statistics to thread local storage in case client IStatisticsAggregator implementations are not reentrant
       for (int t = 0; t < maxThreads_; t++)
         threadLocalData_[t].parentStatistics_ = parentStatistics_.DeepClone();
@@ -154,7 +151,6 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         progress_[Verbose] << "Terminating at max depth." << std::endl;
         return;
       }
-
       #pragma omp parallel for
       for(int threadIndex=0; threadIndex < maxThreads_; threadIndex++)
       {
@@ -347,12 +343,13 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       if(progress==0)
         progress=&defaultProgress;
 
+      
       ParallelTreeTrainingOperation<F, S> trainingOperation(random, context, parameters, data, *progress);
-
+      
       std::unique_ptr<Tree<F, S> > tree = std::unique_ptr<Tree<F, S> >(new Tree<F,S>(parameters.MaxDecisionLevels));
 
       (*progress)[Verbose] << std::endl;
-
+      
       trainingOperation.TrainNodesRecurse(tree->GetNodes(), 0, 0, data.Count(), 0);  // will recurse until termination criterion is met
 
       (*progress)[Verbose] << std::endl;
@@ -390,13 +387,13 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       ProgressStream defaultProgress(std::cout, parameters.Verbose? Verbose:Interest);
       if(progress==0)
         progress=&defaultProgress;
-
+      
       std::unique_ptr<Forest<F,S> > forest = std::unique_ptr<Forest<F,S> >(new Forest<F,S>());
-        
+      
       for (int t = 0; t < parameters.NumberOfTrees; t++)
       {
         (*progress)[Interest] << "\rTraining tree "<< t << "...";
-
+      
         std::unique_ptr<Tree<F, S> > tree = ParallelTreeTrainer<F, S>::TrainTree(random, context, parameters, data, progress);
         forest->AddTree(std::move(tree));
       }
