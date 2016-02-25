@@ -44,9 +44,9 @@ namespace MicrosoftResearch {
             class RandomHyperplaneFeatureResponse
             {
             public:
-                unsigned dimensions;
                 std::vector<float> n;
                 std::vector<cv::Point> offset;
+                unsigned dimensions;
 
                 RandomHyperplaneFeatureResponse() {
                     dimensions = 0;
@@ -92,9 +92,9 @@ namespace MicrosoftResearch {
             class PixelSubtractionResponse
             {
             public:
-                unsigned dimensions;
                 cv::Point offset_0;
                 cv::Point offset_1;
+                unsigned dimensions;
 
                 PixelSubtractionResponse() {
                     dimensions = 0;

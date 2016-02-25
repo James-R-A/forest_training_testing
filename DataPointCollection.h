@@ -270,15 +270,10 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         {
             // assuming compiler is clever enough to get quotient and remainder 
             // in singe operation
-            std::cout << "index_in: " << std::to_string(i) << std::endl;
             int image_index = i / step;
-            std::cout << "imgage_index: " << std::to_string(image_index) << std::endl;
             int position_rem = i % step;
-            std::cout << "position_remainder: " << std::to_string(position_rem) << std::endl;
             int row = position_rem / image_size.width;
-            std::cout << "position_row: " << std::to_string(row) << std::endl;
             int column = position_rem % image_size.width;
-            std::cout << "position_col: " << std::to_string(column) << std::endl;
                       
             return std::tuple<const cv::Mat*, cv::Point>(&images_[image_index], cv::Point(column, row));
         }
