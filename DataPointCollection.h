@@ -17,22 +17,6 @@
 
 namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 {
-    /// <summary>
-    /// Used to describe the expected use of the loaded images (used
-    /// in DataPointCollection::Load()).
-    /// </summary>
-
-    //class DataDescriptor
-    //{
-    //public:
-    //  enum e
-    //  {
-    //      Both = 0x0,
-    //      Classes = 0x1,
-    //      TargetValues = 0x2,
-    //      None = 0x4
-    //  };
-    //};
 
     /// <summary>
     /// A collection of data points, each represented by an int and (optionally)
@@ -181,6 +165,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         std::vector<cv::Mat> images_;
         // vector of depth labels
         std::vector<uint8_t> labels_;
+        std::vector<uint16_t> targets_;
         // because this weird return type is what we need for GetDataPoint()
         //std::tuple<cv::Mat*, cv::Point> data_point;
         // Basically number of pixels in an image
@@ -202,12 +187,19 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         static std::unique_ptr<LMDataPointCollection> LoadImagesClass(
             ProgramParameters& progParams);
 
+        static std::unique_ptr<LMDataPointCollection> LoadImagesRegression(
+            ProgramParameters& progParams);
         /// <summary>
         /// Do these data have class labels?
         /// </summary>
         bool HasLabels() const
         {
             return labels_.size() != 0;
+        }
+
+        bool HasTargetValues() const
+        {
+            return targets_.size() != 0;
         }
 
         /// <summary>
@@ -224,14 +216,6 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         int CountImages() const
         {
             return image_vec_size;
-        }
-
-        /// <summary>
-        /// Do these data have target values (e.g. for regression)?
-        /// </summary>
-        bool HasTargetValues() const
-        {
-            return false;
         }
 
         /// <summary>
@@ -293,5 +277,18 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
             return (int)labels_[i]; // may throw an exception if index is out of range
         }
         
+        /// <summary>
+        /// Get the target value for the specified data point (or raise an
+        /// exception if these data points do not have associated target values).
+        /// </summary>
+        /// <param name="i">Zero-based data point index.</param>
+        /// <returns>The target value.</returns>
+        float GetTarget(int i) const
+        {
+            if (!HasTargetValues())
+                throw std::runtime_error("Data have no associated target values.");
+
+            return float(targets_[i]); // may throw an exception if index is out of range
+        }
     };
 }   }   }

@@ -77,7 +77,7 @@ int trainClassificationParLM(ProgramParameters& progParams)
     try
     {
         std::unique_ptr<Forest<PixelSubtractionResponse, HistogramAggregator> > forest = 
-            Classifier<PixelSubtractionResponse>::TrainParLM(*training_data, progParams.Tpc);
+            Classifier<PixelSubtractionResponse>::TrainPar(*training_data, progParams.Tpc);
 
         forest->Serialize(filename);
         std::cout << "Training complete, forest saved in :" << filename << std::endl;
@@ -132,73 +132,42 @@ int trainRegressionPar(ProgramParameters& progParams, int class_expert_no = -1)
     return 0;
 }
 
-/*
-int testMethod(std::string dir_path)
+int trainRegressionParLM(ProgramParameters& progParams)
 {
-    if (!IPUtils::dirExists(dir_path))
-        return 0;
+    std::string file_suffix = "_regressor.frst";
+
+    std::string filename = progParams.TrainingImagesPath + "/" + progParams.OutputFilename + file_suffix;
+
+    std::cout << "Searching for some IR and depth images in " << progParams.TrainingImagesPath << std::endl;
+
     
+    // create a DataPointCollection in the regression format
+    std::unique_ptr<LMDataPointCollection> training_data = LMDataPointCollection::LoadImagesRegression(progParams); 
 
-    std::cout << "Looking in:\t" << dir_path << std::endl << "Filename?\t";
-    std::string filename;
-    std::cin >> filename;
-    std::string full_path = dir_path + filename;
-    std::cout << "Attempting to deserialize forest from " << full_path << std::endl;
+    int images = training_data->CountImages();
+    std::cout << "Data loaded from images: " << std::to_string(images) << std::endl;
+    std::cout << "of size: " << std::to_string(progParams.ImgHeight * progParams.ImgWidth) << std::endl;
+    std::cout << "Total points:" << std::to_string(training_data->Count()) << std::endl;
 
+    // Train a regressoin forest
+    std::cout << "\nAttempting training" << std::endl;
+    try
+    {
+        std::unique_ptr<Forest<PixelSubtractionResponse, DiffEntropyAggregator> > forest =
+            Regressor<PixelSubtractionResponse>::TrainPar(*training_data, progParams.Tpr);
 
-    std::unique_ptr<Forest<PixelSubtractionResponse, HistogramAggregator> > forest =
-        Forest<PixelSubtractionResponse, HistogramAggregator>::Deserialize(full_path);
+        forest->Serialize(filename);
+        std::cout << "Training complete, forest saved in :" << filename << std::endl;
+    }
+    catch (const std::runtime_error& e)
+    {
+        std::cerr << "Training Failed" << std::endl;
+        std::cerr << e.what() << std::endl;
+    }
 
-    //std::unique_ptr<Forest<RandomHyperplaneFeatureResponse, HistogramAggregator> > forest =
-    //  Forest<RandomHyperplaneFeatureResponse, HistogramAggregator>::Deserialize(full_path);
-
-    std::cout << "Forest loaded:" << std::endl;
-    std::cout << "Trees:\t" << std::to_string(forest->TreeCount()) << std::endl;
-
-    int64 start_time = cv::getTickCount(); //////////////////
-    std::unique_ptr<DataPointCollection> test_data = DataPointCollection::LoadImagesClass(FILE_PATH,
-        cv::Size(640, 480),
-        false, 1, 11);
-    int64 process_time = (((cv::getTickCount() - start_time) / cv::getTickFrequency()) * 1000);///////////////
-    std::cout << "Process time data load:" << std::to_string(process_time) << std::endl;
-
-
-    cv::Mat testMat;
-    testMat = cv::imread(FILE_PATH+"test11ir.png", -1);
-    if (!testMat.data)
-        throw;
-
-    start_time = cv::getTickCount(); //////////////////
-    std::unique_ptr<DataPointCollection> test_data1 = DataPointCollection::LoadMat(testMat, cv::Size(640, 480));
-    process_time = (((cv::getTickCount() - start_time) / cv::getTickFrequency()) * 1000);///////////////
-    std::cout << "Process time data load:" << std::to_string(process_time) << std::endl;
-
-    start_time = cv::getTickCount();
-    cv::Mat bins_mat = Classifier<PixelSubtractionResponse>::ApplyMat(*forest, *test_data1);
-
-
-    std::vector<uchar> bins_vec = IPUtils::vectorFromBins(bins_mat, cv::Size(640, 480));
-    cv::Mat result_mat1 = cv::Mat(480, 640, CV_8UC1, (uint8_t*)bins_vec.data());
-    cv::Mat result_norm1;
-    cv::normalize(result_mat1, result_norm1, 0, 255, cv::NORM_MINMAX, CV_8UC1);
-    cv::Mat depth_mat = cv::Mat(480, 640, CV_8UC1, (uint8_t*)test_data->labels_.data());
-    cv::Mat depth_norm;
-
-    cv::normalize(depth_mat, depth_norm, 0, 255, cv::NORM_MINMAX, CV_8UC1);
-
-
-    cv::imshow("test", depth_norm);
-    cv::imshow("result1", result_norm1);
-    process_time = (((cv::getTickCount() - start_time) / cv::getTickFrequency()) * 1000);
-    std::cout << "Process time:" << std::to_string(process_time) << std::endl;
-
-    cv::waitKey(0);
-    cv::destroyAllWindows();
-    
     return 0;
-
 }
-*/
+
 int regressOnline(std::string dir_path)
 {
     if (!IPUtils::dirExists(dir_path))
@@ -452,7 +421,10 @@ int growSomeForests(ProgramParameters& progParams)
         try
         {
             std::cout << "\nAttempting to grow regressor" << std::endl;
-            trainRegressionPar(progParams, -1);
+            if(!progParams.LM)
+                trainRegressionPar(progParams, -1);
+            else
+                trainRegressionParLM(progParams);
         }
         catch (const std::runtime_error& e)
         {

@@ -126,7 +126,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
     {
         // http://stats.stackexchange.com/questions/72212/updating-variance-of-a-dataset
 
-        const DataPointCollection& concreteData = (const DataPointCollection&)(data);
+        const IDataPointCollection& concreteData = (const IDataPointCollection&)(data);
         this->sample_count_ = this->sample_count_ + 1;
         float err = concreteData.GetTarget(index) - this->mean_;
         this->mean_ = this->mean_ + (err / this->sample_count_);

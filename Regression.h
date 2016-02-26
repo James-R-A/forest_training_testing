@@ -68,43 +68,6 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
     public:
         /// <summary>
         /// Create and train a classification forest (HistogramAggregator statistics) 
-        /// If OpenMP is compiled, this function parallelises by training multiple trees 
-        /// at once. If not compiled, no parallelisation is used.
-        /// If number of trees is small (< number of available cores) better parallel 
-        /// performance is achieved by using Classifier::TrainPar()
-        /// </summary>
-        static std::unique_ptr<Forest<F, DiffEntropyAggregator> > Train(
-            const DataPointCollection& trainingData,
-            const TrainingParameters& TrainingParameters) // where F : IFeatureResponse
-        {
-
-            if (trainingData.HasTargetValues() == false)
-                throw std::runtime_error("Training data points should have target values.");
-
-            Random random;
-
-            FeatureFactory<F> featureFactory(trainingData.Dimensions());
-            RegressionTrainingContext<F> regressionContext(&featureFactory);
-            ProgressStream progress_stream(std::cout, Interest);
-            if (TrainingParameters.Verbose)
-                progress_stream.makeVerbose();
-
-            #if defined(_OPENMP)
-            std::unique_ptr<Forest<F, DiffEntropyAggregator> > forest
-                = ForestTrainer<F, DiffEntropyAggregator>::ParallelTrainForest(
-                    random, TrainingParameters, regressionContext,
-                    trainingData, &progress_stream);
-            #else
-            std::unique_ptr<Forest<F, DiffEntropyAggregator> > forest
-                = ForestTrainer<F, DiffEntropyAggregator>::TrainForest(
-                    random, TrainingParameters, regressionContext, trainingData, &progress_stream);
-            #endif
-
-            return forest;
-        }
-
-        /// <summary>
-        /// Create and train a classification forest (HistogramAggregator statistics) 
         /// If OpenMP is compiled, this function parallelises by evaluating node responses in parallel
         /// training one tree at a time.
         /// </summary>
@@ -113,6 +76,34 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
             const TrainingParameters& TrainingParameters) // where F : IFeatureResponse
         {
 
+            if (trainingData.HasTargetValues() == false)
+                throw std::runtime_error("Training data points must have target values.");
+
+            // For random number generation.
+            Random random;
+
+            FeatureFactory<F> featureFactory(trainingData.Dimensions());
+            RegressionTrainingContext<F> regressionContext(&featureFactory);
+            ProgressStream progress_stream(std::cout, Interest);
+            if (TrainingParameters.Verbose)
+                progress_stream.makeVerbose();
+
+            std::unique_ptr<Forest<F, DiffEntropyAggregator> > forest = ParallelForestTrainer<F, DiffEntropyAggregator>::TrainForest(
+                random, TrainingParameters, regressionContext, trainingData, &progress_stream);
+
+            return forest;
+        }
+
+                /// <summary>
+        /// Create and train a classification forest (HistogramAggregator statistics) 
+        /// If OpenMP is compiled, this function parallelises by evaluating node responses in parallel
+        /// training one tree at a time.
+        /// </summary>
+        static std::unique_ptr<Forest<F, DiffEntropyAggregator> > TrainPar(
+            const LMDataPointCollection& trainingData,
+            const TrainingParameters& TrainingParameters) // where F : IFeatureResponse
+        {
+            std::cout << "foo" << std::endl;
             if (trainingData.HasTargetValues() == false)
                 throw std::runtime_error("Training data points must have target values.");
 

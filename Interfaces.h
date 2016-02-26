@@ -30,6 +30,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
     virtual ~IDataPointCollection() {};
     virtual unsigned int Count() const=0;
     virtual int GetIntegerLabel(int i) const=0;
+    virtual float GetTarget(int i) const=0;
   };
 
   /// <summary>
