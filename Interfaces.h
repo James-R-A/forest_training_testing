@@ -1,4 +1,6 @@
 #pragma once
+#include <tuple>
+#include <opencv2/opencv.hpp>
 #include "Random.h"
 // This file defines interfaces used during decision forest training and
 // evaluation. These interfaces are intended to be implemented within client

@@ -29,8 +29,10 @@ const std::string FILE_PATH = "/media/james/data_wd/";
 
 int trainClassificationPar(ProgramParameters& progParams)
 {
+    if(progParams.TrainingImagesPath.back() != '/')
+        progParams.TrainingImagesPath += "/";
 
-    std::string filename = progParams.TrainingImagesPath + "/" + progParams.OutputFilename + "_classifier.frst";
+    std::string filename = progParams.TrainingImagesPath + progParams.OutputFilename + "_classifier.frst";
      
     std::cout << "Searching for some IR and depth images in " << progParams.TrainingImagesPath << std::endl;
     
@@ -40,6 +42,7 @@ int trainClassificationPar(ProgramParameters& progParams)
     std::cout << "Data loaded from images: " << std::to_string(images) << std::endl;
     std::cout << "of size: " << std::to_string(progParams.ImgHeight * progParams.ImgWidth) << std::endl;
     std::cout << "Total points:" << std::to_string(training_data->Count()) << std::endl;
+    std::cout << (training_data->low_memory? "Low Memory Implementation" : "Inefficient Memory Implementation") << std::endl;
  
     std::cout << "\nAttempting training" << std::endl;
     try
@@ -68,7 +71,10 @@ int trainRegressionPar(ProgramParameters& progParams, int class_expert_no = -1)
     else
         file_suffix = "_regressor.frst";
 
-    std::string filename = progParams.TrainingImagesPath + "/" + progParams.OutputFilename + file_suffix;
+    if(progParams.TrainingImagesPath.back() != '/')
+        progParams.TrainingImagesPath += "/";
+
+    std::string filename = progParams.TrainingImagesPath + progParams.OutputFilename + file_suffix;
 
     std::cout << "Searching for some IR and depth images in " << progParams.TrainingImagesPath << std::endl;
 
@@ -80,6 +86,7 @@ int trainRegressionPar(ProgramParameters& progParams, int class_expert_no = -1)
     std::cout << "Data loaded from images: " << std::to_string(images) << std::endl;
     std::cout << "of size: " << std::to_string(progParams.ImgHeight * progParams.ImgWidth) << std::endl;
     std::cout << "Total points:" << std::to_string(training_data->Count()) << std::endl;
+    std::cout << (training_data->low_memory? "Low Memory Implementation" : "Inefficient Memory Implementation") << std::endl;
 
     // Train a regressoin forest
     std::cout << "\nAttempting training" << std::endl;
@@ -100,77 +107,13 @@ int trainRegressionPar(ProgramParameters& progParams, int class_expert_no = -1)
     return 0;
 }
 
-/*
-int testMethod(std::string dir_path)
-{
-    if (!IPUtils::dirExists(dir_path))
-        return 0;
-    
-
-    std::cout << "Looking in:\t" << dir_path << std::endl << "Filename?\t";
-    std::string filename;
-    std::cin >> filename;
-    std::string full_path = dir_path + filename;
-    std::cout << "Attempting to deserialize forest from " << full_path << std::endl;
-
-
-    std::unique_ptr<Forest<PixelSubtractionResponse, HistogramAggregator> > forest =
-        Forest<PixelSubtractionResponse, HistogramAggregator>::Deserialize(full_path);
-
-    //std::unique_ptr<Forest<RandomHyperplaneFeatureResponse, HistogramAggregator> > forest =
-    //  Forest<RandomHyperplaneFeatureResponse, HistogramAggregator>::Deserialize(full_path);
-
-    std::cout << "Forest loaded:" << std::endl;
-    std::cout << "Trees:\t" << std::to_string(forest->TreeCount()) << std::endl;
-
-    int64 start_time = cv::getTickCount(); //////////////////
-    std::unique_ptr<DataPointCollection> test_data = DataPointCollection::LoadImagesClass(FILE_PATH,
-        cv::Size(640, 480),
-        false, 1, 11);
-    int64 process_time = (((cv::getTickCount() - start_time) / cv::getTickFrequency()) * 1000);///////////////
-    std::cout << "Process time data load:" << std::to_string(process_time) << std::endl;
-
-
-    cv::Mat testMat;
-    testMat = cv::imread(FILE_PATH+"test11ir.png", -1);
-    if (!testMat.data)
-        throw;
-
-    start_time = cv::getTickCount(); //////////////////
-    std::unique_ptr<DataPointCollection> test_data1 = DataPointCollection::LoadMat(testMat, cv::Size(640, 480));
-    process_time = (((cv::getTickCount() - start_time) / cv::getTickFrequency()) * 1000);///////////////
-    std::cout << "Process time data load:" << std::to_string(process_time) << std::endl;
-
-    start_time = cv::getTickCount();
-    cv::Mat bins_mat = Classifier<PixelSubtractionResponse>::ApplyMat(*forest, *test_data1);
-
-
-    std::vector<uchar> bins_vec = IPUtils::vectorFromBins(bins_mat, cv::Size(640, 480));
-    cv::Mat result_mat1 = cv::Mat(480, 640, CV_8UC1, (uint8_t*)bins_vec.data());
-    cv::Mat result_norm1;
-    cv::normalize(result_mat1, result_norm1, 0, 255, cv::NORM_MINMAX, CV_8UC1);
-    cv::Mat depth_mat = cv::Mat(480, 640, CV_8UC1, (uint8_t*)test_data->labels_.data());
-    cv::Mat depth_norm;
-
-    cv::normalize(depth_mat, depth_norm, 0, 255, cv::NORM_MINMAX, CV_8UC1);
-
-
-    cv::imshow("test", depth_norm);
-    cv::imshow("result1", result_norm1);
-    process_time = (((cv::getTickCount() - start_time) / cv::getTickFrequency()) * 1000);
-    std::cout << "Process time:" << std::to_string(process_time) << std::endl;
-
-    cv::waitKey(0);
-    cv::destroyAllWindows();
-    
-    return 0;
-
-}
-*/
 int regressOnline(std::string dir_path)
 {
     if (!IPUtils::dirExists(dir_path))
         return 0;
+
+    if(dir_path.back() != '/')
+        dir_path += "/";
 
     std::cout << "Looking in:\t" << dir_path << std::endl << "Filename?\t";
     std::string filename;
@@ -226,6 +169,9 @@ int classifyOnline(std::string dir_path)
     if (!IPUtils::dirExists(dir_path))
         return 0;
 
+    if(dir_path.back() != '/')
+        dir_path += "/";
+
     std::cout << "Looking in:\t" << dir_path << std::endl << "Filename?\t";
     std::string filename;
     std::cin >> filename;
@@ -276,6 +222,8 @@ int classifyOnline(std::string dir_path)
 
 int applyMultiLevel(std::string forest_path)
 {
+    if(forest_path.back() != '/')
+        forest_path += "/";
 
     std::cout << "Looking in:\t" << forest_path << std::endl << "File prefix?\t";
     std::string filename;
@@ -396,35 +344,80 @@ int applyMultiLevel(std::string forest_path)
     
 }
 
+int testForest(std::string forest_path,
+    std::string forest_prefix,
+    std::string test_image_path,
+    std::string test_image_prefix,
+    int num_images)
+{
+    if(!IPUtils::dirExists(forest_path))
+        throw std::runtime_error("Failed to find forest directory:" + forest_path);
+
+    if(!IPUtils::dirExists(test_image_path))
+        throw std::runtime_error("Failed to find test image directory:" + test_image_path);        
+
+    // check path ends in '/'
+    if(forest_path.back() != '/')
+        forest_path += "/";
+    if(test_image_path.back() != '/')
+        test_image_path += "/";
+
+    // Initialize classification forest path string and vector of expert forest class strings
+    std::string class_path = forest_path + forest_prefix + "_classifier.frst";
+    std::string e_path[] = {forest_path + forest_prefix + "_expert0.frst",
+                            forest_path + forest_prefix + "_expert1.frst",
+                            forest_path + forest_prefix + "_expert2.frst",
+                            forest_path + forest_prefix + "_expert3.frst",
+                            forest_path + forest_prefix + "_expert4.frst"};
+    std::vector<std::string> expert_path (e_path, e_path+5);
+
+    // Init a vector of pointers to forests... essentially a vector of expert regressors
+    std::vector<std::unique_ptr<ForestShared<PixelSubtractionResponse, DiffEntropyAggregator> > > experts;
+    // Init a pointer to a classifier
+    std::unique_ptr<ForestShared<PixelSubtractionResponse, HistogramAggregator> > classifier;
+    int bins = 5;
+
+    // Load the classifier and expert regressors.
+    try
+    {
+        std::cout << "Loading classifier" << std::endl;
+        // load classifier
+        std::unique_ptr<Forest<PixelSubtractionResponse, HistogramAggregator> > c_forest =
+            Forest<PixelSubtractionResponse, HistogramAggregator>::Deserialize(class_path);
+        // Create ForestShared from loaded forest
+        std::unique_ptr<ForestShared<PixelSubtractionResponse, HistogramAggregator> > c_forest_shared =
+            ForestShared<PixelSubtractionResponse, HistogramAggregator>::ForestSharedFromForest(*c_forest);
+        // Delete original forest. May roll these steps into one later if we don't need a regular forest application.
+        c_forest->~Forest();
+        c_forest.release();
+        classifier = move(c_forest_shared);
+        std::cout << "Classifier loaded with " << std::to_string(classifier->TreeCount()) << " trees" << std::endl;
+        for(int i=0;i<bins;i++)
+        {
+            std::cout << "Loading expert " << std::to_string(i) << std::endl;
+            std::unique_ptr<Forest<PixelSubtractionResponse, DiffEntropyAggregator> > e_forest =
+                Forest<PixelSubtractionResponse, DiffEntropyAggregator>::Deserialize(expert_path[i]);
+            // Create ForestShared from loaded forest
+            std::unique_ptr<ForestShared<PixelSubtractionResponse, DiffEntropyAggregator> > e_forest_shared =
+                ForestShared<PixelSubtractionResponse, DiffEntropyAggregator>::ForestSharedFromForest(*e_forest);
+            // Delete original forest. May roll these steps into one later if we don't need a regular forest application.
+            e_forest->~Forest();
+            e_forest.release();
+            std::cout << "Expert loaded with " << std::to_string(e_forest_shared->TreeCount()) << " trees" << std::endl;
+            experts.push_back(std::move(e_forest_shared));
+        }
+    }
+    catch(const std::runtime_error& e)
+    {
+        std::cerr << "Forest loading Failed" << std::endl;
+        std::cerr << e.what() << std::endl;
+    }
+
+    
+}
+
 void testFunction()
 {
-    cv::Mat ir_mat = cv::imread("/media/james/data_wd/training_images/test0ir.png", -1);
-    cv::Mat depth_mat = cv::imread("/media/james/data_wd/training_images/test0depth.png", -1);
-    std::string path_string = "/media/james/data_wd/training_images/test0ir.png";
-    cv::Point img_point(1,2);
-    cv::Mat* mat_ptr = &ir_mat;
-
-    std::cout << "ir mat size: " << sizeof(ir_mat) << std::endl;
-    std::cout << "ir mat data size: " << sizeof(*ir_mat.data) << std::endl;
-    std::cout << "depth mat size: " << sizeof(depth_mat) << std::endl;
-    std::cout << "depth mat data size: " << sizeof(*depth_mat.data) << std::endl;
-    std::cout << "string size: " << sizeof(path_string) << std::endl;
-    std::cout << "int size: " << sizeof(1) << std::endl;
-    std::cout << "point size: " << sizeof(img_point) << std::endl;
-    std::cout << "mat ptr size: " << sizeof(mat_ptr) << std::endl;
-
-    int64 start_time = cv::getTickCount();
-    std::cout << to_string(ir_mat.at<int8_t>(12,153)) << std::endl;
-    int64 process_time = (cv::getTickCount() - start_time) ;
-    std::cout << "Process time: " << std::to_string(process_time) << std::endl;
-
-    start_time = cv::getTickCount();
-    cv::Mat ir_mat1 = cv::imread("/media/james/data_wd/training_images/test1ir.png", -1);
-    std::cout << to_string(ir_mat1.at<int8_t>(12,153)) << std::endl;
-    process_time = (cv::getTickCount() - start_time) ;
-    std::cout << "Process time: " << std::to_string(process_time) << std::endl;
-
-    std::cout << IPUtils::getTypeString(depth_mat.type()) << std::endl;
 }
 
 int growSomeForests(ProgramParameters& progParams)
@@ -478,12 +471,14 @@ int growSomeForests(ProgramParameters& progParams)
         {
             std::cout << "\nAttempting to grow classifier" << std::endl;
             trainClassificationPar(progParams);
+            
         }
         catch (const std::runtime_error& e)
         {
             std::cerr << e.what() << std::endl;
         }
     }
+    return -1;
 }
 
 void printMenu()
@@ -503,7 +498,7 @@ void interactiveMode()
 {
     bool cont = true;
     std::string in;
-    std::string forest_path = "/home/james/workspace/forests/";
+    std::string forest_path = "/home/james/workspace/forest_files/";
     //std::string forest_path = "/media/james/data_wd/training_realsense/";
     printMenu();
 
@@ -553,9 +548,16 @@ void printUsage(bool incorrect=false)
     if(incorrect)
         std::cout << "Incorrect input." << std::endl;
 
-    std::cout << "Command Line Useage:\n\t./FTT /path/to/params.params /path/to/trainingImages" << std::endl;
-    std::cout << "Or, if your params file contains the path to training images, pass only the params file" << std::endl;
-    std::cout << "To use interactively, pass no cla's" << std::endl;
+    std::cout << "Command Line Useage:\n" << std::endl;
+    std::cout << "To grow [a/some] forest[s]: \n\t./FTT -g /path/to/params.params" << std::endl;
+    std::cout << "To run a test on multi-level forests: \n\t ./FTT -t";
+    std::cout << " /path/to/forest/ forest_prefix";
+    std::cout << " /path/to/test/images test_image_prefix";
+    std::cout << " num_test_images" << std::endl;
+    std::cout << "Note, when passing prefixes, things like _classifier.frst" << std::endl;
+    std::cout << "and _expert0.frst and _testir.png and _testdepth.png will" << std::endl;
+    std::cout << "appended automatically" << std::endl;
+    std::cout << std::endl << "To use interactively, pass no cla's" << std::endl;
 }
 
 ProgramParameters getParamsFromFile(std::string& params_path)
@@ -634,35 +636,54 @@ ProgramParameters getParamsFromFile(std::string& params_path, std::string& image
 
 int main(int argc, char *argv[])
 {
-    bool quit_flag = false;
     ProgramParameters progParams;
     if( argc < 2 )
     {
         printUsage();
         std::cout << "Interactive mode" << std::endl;
         interactiveMode();    
-        quit_flag = true;
-    }
-    else if(argc == 2)
-    {
-        std::string params_path = argv[1];
-        progParams = getParamsFromFile(params_path);
-        progParams.prettyPrint();
     }
     else if(argc == 3)
     {
-        std::string params_path = argv[1];
-        std::string images_path = argv[2];
-        progParams = getParamsFromFile(params_path, images_path);
-        progParams.prettyPrint();
+        std::string frst_arg = argv[1];
+        if(frst_arg.compare("-g") == 0)
+        {
+            std::string params_path = argv[2];
+            progParams = getParamsFromFile(params_path);
+            progParams.prettyPrint();
+            growSomeForests(progParams);
+        }
+        else
+        {
+            printUsage(true); 
+        }
+
+    }
+    else if(argc == 7)
+    {
+        std::string frst_arg = argv[1];
+        if(frst_arg.compare("-t") == 0)
+        {
+            std::string forest_path = argv[2];
+            std::string forest_prefix = argv[3];
+            std::string test_image_path = argv[4];
+            std::string test_image_prefix = argv[5];
+            int num_test_images = std::stoi(std::string(argv[6]));
+            std::cout << "Forest path: " << forest_path << std::endl;
+            std::cout << "Forest prefix: " << forest_prefix << std::endl;
+            std::cout << "Test image path: " << test_image_path << std::endl;
+            std::cout << "Test image prefix: " << test_image_prefix << std::endl;
+            std::cout << "Images to use in testing: " << std::to_string(num_test_images) << std::endl;
+            testForest(forest_path, 
+                forest_prefix, 
+                test_image_path, 
+                test_image_prefix, 
+                num_test_images);
+        }
     }
     else
     {
         printUsage(true); 
-        quit_flag = true;
-    }
-
-    if(!quit_flag)
-        growSomeForests(progParams);
+    }   
 
 }

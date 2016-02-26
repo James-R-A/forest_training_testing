@@ -84,8 +84,8 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
     ProgramParameters()
     {
       OutputFilename = "default";
-      TrainingImagesPath = "/media/james/data_wd";
-      InputPrefix = "test";
+      TrainingImagesPath = "/media/james/data_wd/training_realsense";
+      InputPrefix = "img";
       NumberTrainingImages = 10;
       TrainingImagesStart = 0;
       ForestType = ForestDescriptor::Classification;
@@ -288,7 +288,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       std::cout << "ExpertClassNo: \t\t\t" << std::to_string(ExpertClassNo) << std::endl;
       std::cout << "Verbose: \t\t\t" << (Tpc.Verbose? "Yes" : "no") << std::endl;
       std::cout << "Max threads to use: \t\t" << std::to_string(Tpr.MaxThreads) << std::endl;
-
+      
 
     }
   };

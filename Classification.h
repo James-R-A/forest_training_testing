@@ -73,43 +73,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
     {
 
     public:
-        /// <summary>
-        /// Create and train a classification forest (HistogramAggregator statistics) 
-        /// If OpenMP is compiled, this function parallelises by training multiple trees 
-        /// at once. If not compiled, no parallelisation is used.
-        /// If number of trees is small (< number of available cores) better parallel 
-        /// performance is achieved by using Classifier::TrainPar()
-        /// </summary>
-        static std::unique_ptr<Forest<F, HistogramAggregator> > Train(
-            const DataPointCollection& trainingData,
-            const TrainingParameters& TrainingParameters) // where F : IFeatureResponse
-        {
-                            
-            if (trainingData.HasLabels() == false)
-                throw std::runtime_error("Training data points must be labelled.");
 
-            Random random;
-
-            FeatureFactory<F> featureFactory(trainingData.Dimensions());
-            ClassificationTrainingContext<F> classificationContext(trainingData.CountClasses(), &featureFactory);
-            ProgressStream progress_stream(std::cout, Interest);
-            if(TrainingParameters.Verbose)
-                progress_stream.makeVerbose();
-            
-
-            #if defined(_OPENMP)
-                std::unique_ptr<Forest<F, HistogramAggregator> > forest
-                    = ForestTrainer<F, HistogramAggregator>::ParallelTrainForest(
-                        random, TrainingParameters, classificationContext,
-                        trainingData, &progress_stream);
-            #else
-                std::unique_ptr<Forest<F, HistogramAggregator> > forest
-                    = ForestTrainer<F, HistogramAggregator>::TrainForest(
-                        random, TrainingParameters, classificationContext, trainingData, &progress_stream);
-            #endif
-
-            return forest;
-        }
 
         /// <summary>
         /// Create and train a classification forest (HistogramAggregator statistics) 
@@ -138,7 +102,36 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
             return forest;
         }
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+        // /// <summary>
+        // /// Create and train a classification forest (HistogramAggregator statistics) 
+        // /// If OpenMP is compiled, this function parallelises by evaluating node responses in parallel
+        // /// training one tree at a time.
+        // /// </summary>
+        // static std::unique_ptr<Forest<F, HistogramAggregator> > TrainPar(
+        //     const LMDataPointCollection& trainingData,
+        //     const TrainingParameters& TrainingParameters) // where F : IFeatureResponse
+        // {
+            
+        //     if (trainingData.HasLabels() == false)
+        //         throw std::runtime_error("Training data points must be labelled.");
+
+        //     // For random number generation.
+        //     Random random;
+        //     FeatureFactory<F> featureFactory(trainingData.Dimensions());
+        //     ClassificationTrainingContext<F> classificationContext(trainingData.CountClasses(), &featureFactory);
+        //     ProgressStream progress_stream(std::cout, Interest);
+        //     if (TrainingParameters.Verbose)
+        //         progress_stream.makeVerbose();
+
+        //     std::unique_ptr<Forest<F, HistogramAggregator> > forest = ParallelForestTrainer<F, HistogramAggregator>::TrainForest(
+        //         random, TrainingParameters, classificationContext, trainingData, &progress_stream);
+
+        //     return forest;
+        // }
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// <summary>
         /// Sends an openCV Mat object down each tree of a forest (per-pixel) and 
         /// aggregates the results.
