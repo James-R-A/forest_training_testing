@@ -81,7 +81,6 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
             // For random number generation.
             Random random;
-
             FeatureFactory<F> featureFactory(trainingData.Dimensions());
             RegressionTrainingContext<F> regressionContext(&featureFactory);
             ProgressStream progress_stream(std::cout, Interest);
@@ -99,28 +98,28 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         /// If OpenMP is compiled, this function parallelises by evaluating node responses in parallel
         /// training one tree at a time.
         /// </summary>
-        static std::unique_ptr<Forest<F, DiffEntropyAggregator> > TrainPar(
-            const LMDataPointCollection& trainingData,
-            const TrainingParameters& TrainingParameters) // where F : IFeatureResponse
-        {
-            std::cout << "foo" << std::endl;
-            if (trainingData.HasTargetValues() == false)
-                throw std::runtime_error("Training data points must have target values.");
+        // static std::unique_ptr<Forest<F, DiffEntropyAggregator> > TrainPar(
+        //     const LMDataPointCollection& trainingData,
+        //     const TrainingParameters& TrainingParameters) // where F : IFeatureResponse
+        // {
+        //     std::cout << "foo" << std::endl;
+        //     if (trainingData.HasTargetValues() == false)
+        //         throw std::runtime_error("Training data points must have target values.");
 
-            // For random number generation.
-            Random random;
+        //     // For random number generation.
+        //     Random random;
 
-            FeatureFactory<F> featureFactory(trainingData.Dimensions());
-            RegressionTrainingContext<F> regressionContext(&featureFactory);
-            ProgressStream progress_stream(std::cout, Interest);
-            if (TrainingParameters.Verbose)
-                progress_stream.makeVerbose();
+        //     FeatureFactory<F> featureFactory(trainingData.Dimensions());
+        //     RegressionTrainingContext<F> regressionContext(&featureFactory);
+        //     ProgressStream progress_stream(std::cout, Interest);
+        //     if (TrainingParameters.Verbose)
+        //         progress_stream.makeVerbose();
 
-            std::unique_ptr<Forest<F, DiffEntropyAggregator> > forest = ParallelForestTrainer<F, DiffEntropyAggregator>::TrainForest(
-                random, TrainingParameters, regressionContext, trainingData, &progress_stream);
+        //     std::unique_ptr<Forest<F, DiffEntropyAggregator> > forest = ParallelForestTrainer<F, DiffEntropyAggregator>::TrainForest(
+        //         random, TrainingParameters, regressionContext, trainingData, &progress_stream);
 
-            return forest;
-        }
+        //     return forest;
+        // }
 
         /// <summary>
         /// Sends an openCV Mat object down each tree of a forest (per-pixel) and 

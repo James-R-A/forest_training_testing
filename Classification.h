@@ -105,32 +105,32 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-        /// <summary>
-        /// Create and train a classification forest (HistogramAggregator statistics) 
-        /// If OpenMP is compiled, this function parallelises by evaluating node responses in parallel
-        /// training one tree at a time.
-        /// </summary>
-        static std::unique_ptr<Forest<F, HistogramAggregator> > TrainPar(
-            const LMDataPointCollection& trainingData,
-            const TrainingParameters& TrainingParameters) // where F : IFeatureResponse
-        {
+        // /// <summary>
+        // /// Create and train a classification forest (HistogramAggregator statistics) 
+        // /// If OpenMP is compiled, this function parallelises by evaluating node responses in parallel
+        // /// training one tree at a time.
+        // /// </summary>
+        // static std::unique_ptr<Forest<F, HistogramAggregator> > TrainPar(
+        //     const LMDataPointCollection& trainingData,
+        //     const TrainingParameters& TrainingParameters) // where F : IFeatureResponse
+        // {
             
-            if (trainingData.HasLabels() == false)
-                throw std::runtime_error("Training data points must be labelled.");
+        //     if (trainingData.HasLabels() == false)
+        //         throw std::runtime_error("Training data points must be labelled.");
 
-            // For random number generation.
-            Random random;
-            FeatureFactory<F> featureFactory(trainingData.Dimensions());
-            ClassificationTrainingContext<F> classificationContext(trainingData.CountClasses(), &featureFactory);
-            ProgressStream progress_stream(std::cout, Interest);
-            if (TrainingParameters.Verbose)
-                progress_stream.makeVerbose();
+        //     // For random number generation.
+        //     Random random;
+        //     FeatureFactory<F> featureFactory(trainingData.Dimensions());
+        //     ClassificationTrainingContext<F> classificationContext(trainingData.CountClasses(), &featureFactory);
+        //     ProgressStream progress_stream(std::cout, Interest);
+        //     if (TrainingParameters.Verbose)
+        //         progress_stream.makeVerbose();
 
-            std::unique_ptr<Forest<F, HistogramAggregator> > forest = ParallelForestTrainer<F, HistogramAggregator>::TrainForest(
-                random, TrainingParameters, classificationContext, trainingData, &progress_stream);
+        //     std::unique_ptr<Forest<F, HistogramAggregator> > forest = ParallelForestTrainer<F, HistogramAggregator>::TrainForest(
+        //         random, TrainingParameters, classificationContext, trainingData, &progress_stream);
 
-            return forest;
-        }
+        //     return forest;
+        // }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// <summary>
         /// Sends an openCV Mat object down each tree of a forest (per-pixel) and 

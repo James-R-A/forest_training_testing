@@ -71,7 +71,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
     void HistogramAggregator::Aggregate(const IDataPointCollection& data, unsigned int index)
     {
-        const IDataPointCollection& concreteData = (const IDataPointCollection&)(data);
+        const DataPointCollection& concreteData = (const DataPointCollection&)(data);
 
         bins_[concreteData.GetIntegerLabel((int)index)]++;
         sampleCount_ += 1;
@@ -126,7 +126,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
     {
         // http://stats.stackexchange.com/questions/72212/updating-variance-of-a-dataset
 
-        const IDataPointCollection& concreteData = (const IDataPointCollection&)(data);
+        const DataPointCollection& concreteData = (const DataPointCollection&)(data);
         this->sample_count_ = this->sample_count_ + 1;
         float err = concreteData.GetTarget(index) - this->mean_;
         this->mean_ = this->mean_ + (err / this->sample_count_);

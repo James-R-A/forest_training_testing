@@ -13,9 +13,13 @@ namespace MicrosoftResearch {
             float RandomHyperplaneFeatureResponse::GetResponse(const IDataPointCollection& data, unsigned int index) const
             {
                 const DataPointCollection& concreteData = (const DataPointCollection&)(data);
-                std::tuple<cv::Mat*, cv::Point> datum = concreteData.GetDataPoint(index);
+                std::tuple<const cv::Mat*, cv::Point> datum;
+                if(concreteData.low_memory)
+                    datum = concreteData.GetDataPointLM(index);
+                else
+                    datum = concreteData.GetDataPointRegular(index);
 
-                cv::Mat* datum_matp = std::get<0>(datum);
+                const cv::Mat* datum_matp = std::get<0>(datum);
                 cv::Point datum_point = std::get<1>(datum);
                 cv::Size datum_mat_size = datum_matp->size();
                 cv::Rect boundry = cv::Rect(0, 0, datum_mat_size.width, datum_mat_size.height);
@@ -46,8 +50,17 @@ namespace MicrosoftResearch {
             
             float PixelSubtractionResponse::GetResponse(const IDataPointCollection& data, unsigned int index) const
             {
-                const LMDataPointCollection& concreteData = (const LMDataPointCollection&)(data);
-                std::tuple<const cv::Mat*, cv::Point> datum = concreteData.GetDataPoint(index);
+                const DataPointCollection& concreteData = (const DataPointCollection&)(data);
+                std::tuple<const cv::Mat*, cv::Point> datum;
+                if(concreteData.low_memory)
+                {
+                    datum = concreteData.GetDataPointLM(index);
+                }
+                else
+                {
+                    datum = concreteData.GetDataPointRegular(index);
+                }
+
                 const cv::Mat* datum_matp = std::get<0>(datum);
                 cv::Point datum_point = std::get<1>(datum);
                 cv::Size datum_mat_size = datum_matp->size();
