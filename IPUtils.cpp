@@ -288,7 +288,7 @@ double IPUtils::threshold16(cv::Mat& input_image, cv::Mat& output_image, int thr
 {
     int input_type = input_image.type();
     uchar input_depth = input_type & CV_MAT_DEPTH_MASK;
-    uchar chans = 1 + (type >> CV_CN_SHIFT);
+    uchar chans = 1 + (input_type >> CV_CN_SHIFT);
 
     if((chans != 1) || (input_depth != CV_16U))
         throw std::runtime_error("invalid input format");
@@ -380,6 +380,41 @@ double IPUtils::threshold16(cv::Mat& input_image, cv::Mat& output_image, int thr
     }
 
     return 0.0;
+}
+
+cv::Mat getError(cv::Mat mat_a, cv::Mat mat_b)
+{
+    if(mat_a.size() != mat_b.size())
+        throw std::runtime_error("Matrix sizes are not equal");
+
+    if(mat_a.type() != mat_b.type())
+        throw std::runtime_error("Matrix types are not equal");
+
+    int input_type = mat_a.type();
+    uchar input_depth = input_type & CV_MAT_DEPTH_MASK;
+    uchar chans = 1 + (input_type >> CV_CN_SHIFT);
+
+    if((chans != 1) || (input_depth != CV_16U))
+        throw std::runtime_error("invalid input format");
+
+    cv::Mat ret_mat(mat_a.size(), CV_32SC1);
+    int rows = mat_a.size().height;
+    int cols = mat_a.size().width;
+    int temp=0;
+
+    for(int r=0;r<rows;r++)
+    {
+        int32_t* ret_pix = ret_mat.ptr<int32_t>(r);
+        uint16_t* a_pix = mat_a.ptr<uint16_t>(r);
+        uint16_t* b_pix = mat_b.ptr<uint16_t>(r);
+        for(int c=0;c<cols;c++)
+        {
+            temp = a_pix[c] - b_pix[c];
+            ret_pix[c] = temp * temp;
+        }
+    }
+
+    return ret_mat;
 }
 
 #ifdef __WIN32

@@ -56,6 +56,16 @@ public:
     static bool dirExists(const std::string& dirName_in);
 
     static double threshold16(cv::Mat& input_image, cv::Mat& output_image, int thresh, int maxval, int type);
+
+    /// <summary>
+    /// Generates a cv::Mat where each pixel is the squared error
+    /// return pixel(x,y) = ( mat_a(x,y) - mat_b(x,y) )^2;
+    /// accepted input matrix types are CV_16UC1
+    /// inputs must be same size and type
+    /// </summary>
+    /// <param name="mat_a"> first input matrix </param>
+    /// <param name="mat_a"> second input matrix </param>
+    static cv::Mat getError(cv::Mat mat_a, cv::Mat mat_b);
     
     IPUtils();
     ~IPUtils();

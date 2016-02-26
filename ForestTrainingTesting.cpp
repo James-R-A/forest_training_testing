@@ -283,10 +283,10 @@ int applyMultiLevel(std::string forest_path)
     std::string pathstringd;
     cv::Mat test_image;
     cv::Mat depth_image;
-    cv::Mat bins_mat;
-    cv::Mat reg_mat;
     cv::Mat result_thresh(480, 640, CV_16UC1);
     cv::Mat depth_thresh(480, 640, CV_16UC1);
+    cv::Mat bins_mat;
+    cv::Mat reg_mat;
     std::vector<float> weights_vec(bins);
     
     cv::namedWindow("output");
@@ -413,6 +413,66 @@ int testForest(std::string forest_path,
         std::cerr << e.what() << std::endl;
     }
 
+    std::string img_path = test_image_path+test_image_prefix+"test";
+    std::string img_full_path;
+    std::string depth_path = test_image_path+test_image_prefix+"test";
+    std::string depth_full_path;
+    cv::Mat sse = cv::Mat::zeros(480, 640, CV_32SC1);
+    cv::Mat err = cv::Mat::zeros(480, 640, CV_32SC1);
+    cv::Mat msse(480, 640, CV_32SC1);
+    cv::Mat depth_image(480, 640, CV_16UC1);
+    cv::Mat test_image(480, 640, CV_8UC1);
+    cv::Mat bins_mat;
+    cv::Mat reg_mat;
+    cv::Mat result_thresh, depth_thresh;
+    std::vector<float> weights_vec(bins);
+    int images_processed = 0;
+
+
+    for(int i=0;i<num_images;i++)
+    {
+        img_full_path = img_path + std::to_string(i) + "ir.png";
+        depth_full_path = depth_path + std::to_string(i) + "depth.png";
+        
+        test_image = cv::imread(img_full_path, -1);
+        depth_image = cv::imread(depth_full_path, -1);
+
+        if((!depth_image.data)||(!test_image.data))
+        {
+            std::cerr << "Error loading images:\n\t" << img_full_path << "\n\t" << depth_full_path << std::endl;
+            continue;
+        }
+
+        std::unique_ptr<DataPointCollection> test_data1 = DataPointCollection::LoadMat(test_image, cv::Size(640, 480));
+        bins_mat = Classifier<PixelSubtractionResponse>::ApplyMat(*classifier, *test_data1);
+        // Get the weights for weighted sum from  classifiaction results. 
+        // Essentially represents the probability for any pixel in the image to be in 
+        // a certain bin.
+        std::vector<uchar> bins_vec = IPUtils::vectorFromBins(bins_mat, cv::Size(640, 480));
+        weights_vec = IPUtils::weightsFromBins(bins_mat, cv::Size(640,480), false);
+        std::vector<uint16_t> sum_weighted_output((640*480), 0);
+
+        for(int j=1;j<bins;j++)
+        {
+            std::vector<uint16_t> expert_output = Regressor<PixelSubtractionResponse>::ApplyMat(*experts[j], *test_data1);
+            for(int k=0;k<expert_output.size();k++)
+            {
+                if(bins_vec[k] == 0)
+                    continue;
+                else
+                    sum_weighted_output[k] = sum_weighted_output[k] + uint16_t(expert_output[k] * weights_vec[j]);
+            }
+        }
+        reg_mat = cv::Mat(480, 640, CV_16UC1, (uint16_t*)sum_weighted_output.data());
+        // IPUtils::threshold16(reg_mat, result_thresh, 1201, 65535, 4);
+        // IPUtils::threshold16(depth_image, depth_thresh, 1201, 65535, 4);
+        // err = IPUtils::getError(depth_image, reg_mat);
+        // sse = sse + err;
+        // images_processed++;
+    }
+
+    // float alpha = 1.0 / images_processed;
+    // msse = sse * alpha;
     
 }
 
