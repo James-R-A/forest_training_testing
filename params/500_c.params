@@ -1,47 +1,3 @@
-<<<<<<< HEAD
-FOREST PARAMETERS FILE
-#this is a comment, the # needs to be
-# right at the start of the line because I'm lazy
-TRAINING_IMAGE_PATH:
-/media/james/data_wd/training_realsense
-TRAINING_IMAGES:
-100
-IMAGES_START:
-0
-DEPTH_BINS:
-5
-PATCH_SIZE:
-25
-DEPTH_RAW:
-NO
-TYPE:
-CLASS
-TREES:
-3
-CLASS_LEVELS:
-22
-REG_LEVELS:
-20
-CANDIDATE_FEATURES:
-10
-THRESHOLDS_PER_FEATURE:
-10
-VERBOSE:
-NO
-SPLIT_FUNCTION:
-PIXEL_DIFFERENCE
-FOREST_OUTPUT:
-default
-INPUT_PREFIX:
-img
-IMG_WIDTH:
-640
-IMG_HEIGHT:
-480
-MAX_THREADS:
-7
-||||||| merged common ancestors
-=======
 FOREST PARAMETERS FILE
 #this is a comment, the # needs to be
 # right at the start of the line because I'm lazy
@@ -83,4 +39,4 @@ IMG_HEIGHT:
 480
 MAX_THREADS:
 7
->>>>>>> low_mem_dpc
+
