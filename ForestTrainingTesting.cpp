@@ -412,27 +412,31 @@ int testForest(std::string forest_path,
         std::cerr << "Forest loading Failed" << std::endl;
         std::cerr << e.what() << std::endl;
     }
-
-    std::string img_path = test_image_path+test_image_prefix+"test";
+    // TODO: change this prefix from img to test
+    std::string img_path = test_image_path+test_image_prefix;
     std::string img_full_path;
-    std::string depth_path = test_image_path+test_image_prefix+"test";
+    std::string depth_path = test_image_path+test_image_prefix;
     std::string depth_full_path;
-    cv::Mat sse = cv::Mat::zeros(480, 640, CV_32SC1);
-    cv::Mat err = cv::Mat::zeros(480, 640, CV_32SC1);
-    cv::Mat msse(480, 640, CV_32SC1);
+    cv::Mat sse_t = cv::Mat::zeros(480, 640, CV_32SC1);
+    cv::Mat err_t = cv::Mat::zeros(480, 640, CV_32SC1);
+    cv::Mat msse_t(480, 640, CV_32SC1);
+    cv::Mat sse_nt = cv::Mat::zeros(480, 640, CV_32SC1);
+    cv::Mat err_nt = cv::Mat::zeros(480, 640, CV_32SC1);
+    cv::Mat msse_nt(480, 640, CV_32SC1);
     cv::Mat depth_image(480, 640, CV_16UC1);
     cv::Mat test_image(480, 640, CV_8UC1);
-    cv::Mat bins_mat;
     cv::Mat reg_mat;
-    cv::Mat result_thresh, depth_thresh;
+    cv::Mat bins_mat;
+    cv::Mat result_thresh(480, 640, CV_16UC1);
+    cv::Mat depth_thresh(480, 640, CV_16UC1);
     std::vector<float> weights_vec(bins);
     int images_processed = 0;
 
-
     for(int i=0;i<num_images;i++)
     {
-        img_full_path = img_path + std::to_string(i) + "ir.png";
-        depth_full_path = depth_path + std::to_string(i) + "depth.png";
+        int image_index = i * 5;
+        img_full_path = img_path + std::to_string(image_index) + "ir.png";
+        depth_full_path = depth_path + std::to_string(image_index) + "depth.png";
         
         test_image = cv::imread(img_full_path, -1);
         depth_image = cv::imread(depth_full_path, -1);
@@ -464,16 +468,33 @@ int testForest(std::string forest_path,
             }
         }
         reg_mat = cv::Mat(480, 640, CV_16UC1, (uint16_t*)sum_weighted_output.data());
-        // IPUtils::threshold16(reg_mat, result_thresh, 1201, 65535, 4);
-        // IPUtils::threshold16(depth_image, depth_thresh, 1201, 65535, 4);
-        // err = IPUtils::getError(depth_image, reg_mat);
-        // sse = sse + err;
-        // images_processed++;
+        IPUtils::threshold16(reg_mat, result_thresh, 1200, 65535, 4);
+        IPUtils::threshold16(depth_image, depth_thresh, 1200, 65535, 4);
+        err_nt = IPUtils::getError(depth_image, reg_mat);
+        err_t = IPUtils::getError(depth_thresh, result_thresh); 
+        // result_thresh.convertTo(result_thresh, CV_16U, 54);
+        // depth_thresh.convertTo(depth_thresh, CV_16U, 54);
+        // cv::imshow("error_nthresh", err_nt);
+        // cv::imshow("error_thresh", err_t);
+        // cv::imshow("depth", depth_thresh);
+        // cv::imshow("result", result_thresh);
+        // cv::waitKey(30);
+        sse_t = sse_t + err_t;
+        sse_nt = sse_nt + err_nt;
+        images_processed++;
     }
 
-    // float alpha = 1.0 / images_processed;
-    // msse = sse * alpha;
-    
+    float alpha = 1.0 / images_processed;
+    msse_t = sse_t * alpha;
+    msse_nt = sse_nt * alpha;
+    cv::Scalar mean_nt, mean_t;
+    cv::Scalar std_dev_nt, std_dev_t;
+    cv::meanStdDev(msse_t, mean_t, std_dev_t);
+    cv::meanStdDev(msse_nt, mean_nt, std_dev_nt);
+    std::cout << "Mean (not thresholded): " << std::to_string(mean_nt[0]) << std::endl;
+    std::cout << "Std dev (not thresholded): " << std::to_string(std_dev_nt[0]) << std::endl;
+    std::cout << "Mean (thresholded): " << std::to_string(mean_t[0]) << std::endl;
+    std::cout << "Std dev (thresholded): " << std::to_string(std_dev_t[0]) << std::endl;
 }
 
 void testFunction()

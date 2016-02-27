@@ -382,7 +382,7 @@ double IPUtils::threshold16(cv::Mat& input_image, cv::Mat& output_image, int thr
     return 0.0;
 }
 
-cv::Mat getError(cv::Mat mat_a, cv::Mat mat_b)
+cv::Mat IPUtils::getError(cv::Mat mat_a, cv::Mat mat_b)
 {
     if(mat_a.size() != mat_b.size())
         throw std::runtime_error("Matrix sizes are not equal");
@@ -400,7 +400,7 @@ cv::Mat getError(cv::Mat mat_a, cv::Mat mat_b)
     cv::Mat ret_mat(mat_a.size(), CV_32SC1);
     int rows = mat_a.size().height;
     int cols = mat_a.size().width;
-    int temp=0;
+    uint16_t temp=0;
 
     for(int r=0;r<rows;r++)
     {
@@ -409,7 +409,8 @@ cv::Mat getError(cv::Mat mat_a, cv::Mat mat_b)
         uint16_t* b_pix = mat_b.ptr<uint16_t>(r);
         for(int c=0;c<cols;c++)
         {
-            temp = a_pix[c] - b_pix[c];
+            temp = abs(a_pix[c] - b_pix[c]);
+            //temp = a_pix[c] - b_pix[c];
             ret_pix[c] = temp * temp;
         }
     }
@@ -418,7 +419,7 @@ cv::Mat getError(cv::Mat mat_a, cv::Mat mat_b)
 }
 
 #ifdef __WIN32
-bool dirExists(const std::string& dirName_in)
+bool IPUtils::dirExists(const std::string& dirName_in)
 {
     unsigned long ftyp = GetFileAttributesA(dirName_in.c_str());
     if (ftyp == INVALID_FILE_ATTRIBUTES)

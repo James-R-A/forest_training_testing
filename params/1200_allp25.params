@@ -2,7 +2,7 @@ FOREST PARAMETERS FILE
 #this is a comment, the # needs to be
 # right at the start of the line because I'm lazy
 TRAINING_IMAGE_PATH:
-/home/jamesa/workspace/training_realsense
+/media/james/data_wd/training_realsense
 TRAINING_IMAGES:
 1200
 IMAGES_START:
@@ -22,7 +22,7 @@ CLASS_LEVELS:
 REG_LEVELS:
 20
 CANDIDATE_FEATURES:
-10
+25
 THRESHOLDS_PER_FEATURE:
 10
 VERBOSE:
