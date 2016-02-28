@@ -530,7 +530,7 @@ int growSomeForests(ProgramParameters& progParams)
 
     if(progParams.ForestType == ForestDescriptor::All)
     {
-        for (int i=0;i<progParams.Bins;i++)
+        for (int i=1;i<progParams.Bins;i++)
         {
             try
             {
