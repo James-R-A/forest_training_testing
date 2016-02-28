@@ -251,9 +251,10 @@ std::vector<float> IPUtils::weightsFromBins(cv::Mat bin_mat, cv::Size image_size
 {
     int samples = bin_mat.size().height;
     int bins = bin_mat.size().width;
+    //TODO pass this in by reference instead of calculating
     std::vector<uchar> bin_vector = vectorFromBins(bin_mat, image_size);
     std::vector<int> bin_totals(bins, 0);
-    std::vector<float> weights(bins, 0);
+    std::vector<float> weights(1, 0);
     int start = include_zero? 0:1;
     
     for(int i=0;i<samples;i++)
@@ -261,8 +262,10 @@ std::vector<float> IPUtils::weightsFromBins(cv::Mat bin_mat, cv::Size image_size
         bin_totals[bin_vector[i]]++;
     }
     
-    if(include_zero)  
+
+    if(include_zero)
     {
+        weights.resize(bins, 0);
         for(int i=0;i<bins;i++)
         {
             weights[i] = float(bin_totals[i]) / samples;
@@ -270,12 +273,13 @@ std::vector<float> IPUtils::weightsFromBins(cv::Mat bin_mat, cv::Size image_size
     }
     else
     {
+        weights.resize(bins-1, 0);
         int total = 0;
         for(int i=1;i<bins;i++)
         {
             total += bin_totals[i];
         }
-        for(int i=1;i<bins;i++)
+        for(int i=0;i<bins-1;i++)
         {
             weights[i] = float(bin_totals[i])/total;
         }

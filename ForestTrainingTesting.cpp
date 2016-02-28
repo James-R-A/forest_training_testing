@@ -230,12 +230,11 @@ int applyMultiLevel(std::string forest_path)
     std::cin >> filename;
 
     std::string class_path = forest_path + filename + "_classifier.frst";
-    std::string e_path[] = {forest_path + filename + "_expert0.frst",
-                            forest_path + filename + "_expert1.frst",
+    std::string e_path[] = {forest_path + filename + "_expert1.frst",
                             forest_path + filename + "_expert2.frst",
                             forest_path + filename + "_expert3.frst",
                             forest_path + filename + "_expert4.frst"};
-    std::vector<std::string> expert_path (e_path, e_path+5);
+    std::vector<std::string> expert_path (e_path, e_path+4);
     std::vector<std::unique_ptr<ForestShared<PixelSubtractionResponse, DiffEntropyAggregator> > > experts;
     std::unique_ptr<ForestShared<PixelSubtractionResponse, HistogramAggregator> > classifier;
     int bins = 5;
@@ -256,7 +255,7 @@ int applyMultiLevel(std::string forest_path)
         std::cout << "Classifier loaded with " << std::to_string(classifier->TreeCount()) << " trees" << std::endl;
         for(int i=0;i<bins;i++)
         {
-            std::cout << "Loading expert " << std::to_string(i) << std::endl;
+            std::cout << "Loading expert " << std::to_string(i+1) << std::endl;
             std::unique_ptr<Forest<PixelSubtractionResponse, DiffEntropyAggregator> > e_forest =
                 Forest<PixelSubtractionResponse, DiffEntropyAggregator>::Deserialize(expert_path[i]);
             // Create ForestShared from loaded forest
@@ -287,7 +286,7 @@ int applyMultiLevel(std::string forest_path)
     cv::Mat depth_thresh(480, 640, CV_16UC1);
     cv::Mat bins_mat;
     cv::Mat reg_mat;
-    std::vector<float> weights_vec(bins);
+    std::vector<float> weights_vec(bins-1);
     
     cv::namedWindow("output");
     cv::namedWindow("depth");
@@ -312,7 +311,7 @@ int applyMultiLevel(std::string forest_path)
         weights_vec = IPUtils::weightsFromBins(bins_mat, cv::Size(640,480), false);
         std::vector<uint16_t> sum_weighted_output((640*480), 0);
 
-        for(int j=1;j<bins;j++)
+        for(int j=0;j<bins-1;j++)
         {
             std::vector<uint16_t> expert_output = Regressor<PixelSubtractionResponse>::ApplyMat(*experts[j], *test_data1);
             for(int k=0;k<expert_output.size();k++)
@@ -364,12 +363,11 @@ int testForest(std::string forest_path,
 
     // Initialize classification forest path string and vector of expert forest class strings
     std::string class_path = forest_path + forest_prefix + "_classifier.frst";
-    std::string e_path[] = {forest_path + forest_prefix + "_expert0.frst",
-                            forest_path + forest_prefix + "_expert1.frst",
+    std::string e_path[] = {forest_path + forest_prefix + "_expert1.frst",
                             forest_path + forest_prefix + "_expert2.frst",
                             forest_path + forest_prefix + "_expert3.frst",
                             forest_path + forest_prefix + "_expert4.frst"};
-    std::vector<std::string> expert_path (e_path, e_path+5);
+    std::vector<std::string> expert_path (e_path, e_path+4);
 
     // Init a vector of pointers to forests... essentially a vector of expert regressors
     std::vector<std::unique_ptr<ForestShared<PixelSubtractionResponse, DiffEntropyAggregator> > > experts;
@@ -392,9 +390,9 @@ int testForest(std::string forest_path,
         c_forest.release();
         classifier = move(c_forest_shared);
         std::cout << "Classifier loaded with " << std::to_string(classifier->TreeCount()) << " trees" << std::endl;
-        for(int i=0;i<bins;i++)
+        for(int i=0;i<bins-1;i++)
         {
-            std::cout << "Loading expert " << std::to_string(i) << std::endl;
+            std::cout << "Loading expert " << std::to_string(i+1) << std::endl;
             std::unique_ptr<Forest<PixelSubtractionResponse, DiffEntropyAggregator> > e_forest =
                 Forest<PixelSubtractionResponse, DiffEntropyAggregator>::Deserialize(expert_path[i]);
             // Create ForestShared from loaded forest
@@ -429,7 +427,7 @@ int testForest(std::string forest_path,
     cv::Mat bins_mat;
     cv::Mat result_thresh(480, 640, CV_16UC1);
     cv::Mat depth_thresh(480, 640, CV_16UC1);
-    std::vector<float> weights_vec(bins);
+    std::vector<float> weights_vec(bins-1);
     int images_processed = 0;
 
     for(int i=0;i<num_images;i++)
@@ -456,7 +454,7 @@ int testForest(std::string forest_path,
         weights_vec = IPUtils::weightsFromBins(bins_mat, cv::Size(640,480), false);
         std::vector<uint16_t> sum_weighted_output((640*480), 0);
 
-        for(int j=1;j<bins;j++)
+        for(int j=0;j<bins-1;j++)
         {
             std::vector<uint16_t> expert_output = Regressor<PixelSubtractionResponse>::ApplyMat(*experts[j], *test_data1);
             for(int k=0;k<expert_output.size();k++)
@@ -760,6 +758,10 @@ int main(int argc, char *argv[])
                 test_image_path, 
                 test_image_prefix, 
                 num_test_images);
+        }
+        else
+        {
+            printUsage(true); 
         }
     }
     else
