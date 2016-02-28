@@ -281,7 +281,7 @@ std::vector<float> IPUtils::weightsFromBins(cv::Mat bin_mat, cv::Size image_size
         }
         for(int i=0;i<bins-1;i++)
         {
-            weights[i] = float(bin_totals[i])/total;
+            weights[i] = float(bin_totals[i+1])/total;
         }
     }
     
