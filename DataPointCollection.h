@@ -48,16 +48,24 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         std::vector<uint16_t> targets_;
         // flag to show if the DPC is a low memory implementation.
         bool low_memory;
+        // flag to show if we bother training on zero intensity pixels
+        bool train_on_zero;
 
         static const int UnknownClassLabel = -1;
 
         /// <summary>
         /// Loads a data set from a directory of IR and depth images
-        /// Loads in a classification problem format
         /// </summary>
         /// <param name="progParams">A program parameters object which defines 
         ///  how the program will run, its inputs, and its outputs </param>
-        static  std::unique_ptr<DataPointCollection> LoadImagesClass(ProgramParameters& progParams);
+        /// <param name="classification"> set true if for classification, 
+        ///  false if for regression </param>
+        /// <param name="class_number">Expert class number, parameter used in
+        ///  training regressors or experts </param>
+        static  std::unique_ptr<DataPointCollection> LoadImages(
+            ProgramParameters& progParams,
+            bool classification=true,
+            int class_number=-1);
 
         /// <summary>
         /// Loads a data set from a directory of IR and depth images

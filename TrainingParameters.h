@@ -80,6 +80,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
     int Bins;
     int ImgHeight;
     int ImgWidth;
+    bool TrainOnZeroIR;
 
     ProgramParameters()
     {
@@ -96,6 +97,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       Bins = 5;
       ImgHeight = 480;
       ImgWidth = 640;
+      TrainOnZeroIR = true;
     }
 
     bool setParam(std::string parameter, std::string value)
@@ -254,6 +256,15 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         int n= std::stoi(value);
         ImgHeight = n;
       }
+      else if(parameter.compare("TRAIN_ON_ZERO_IR") == 0)
+      {
+        if(value.compare("YES") == 0)
+          TrainOnZeroIR = true;
+        else if(value.compare("NO") == 0)
+          TrainOnZeroIR = false;
+        else
+          throw std::runtime_error("Invalid value for TRAIN_ON_ZERO_IR, expected YES or NO");
+      }
       else
         return false;
 
@@ -287,6 +298,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       std::cout << "Thresholds per Features: \t" << std::to_string(Tpr.NumberOfCandidateThresholdsPerFeature) << std::endl;
       std::cout << "ExpertClassNo: \t\t\t" << std::to_string(ExpertClassNo) << std::endl;
       std::cout << "Verbose: \t\t\t" << (Tpc.Verbose? "Yes" : "no") << std::endl;
+      std::cout << "Train on zero IR: \t\t" << (TrainOnZeroIR? "Yes" : "no") << std::endl;
       std::cout << "Max threads to use: \t\t" << std::to_string(Tpr.MaxThreads) << std::endl;
       
 

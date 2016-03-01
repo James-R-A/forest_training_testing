@@ -36,7 +36,8 @@ int trainClassificationPar(ProgramParameters& progParams)
      
     std::cout << "Searching for some IR and depth images in " << progParams.TrainingImagesPath << std::endl;
     
-    std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesClass(progParams);
+    //std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesClass(progParams);
+    std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImages(progParams, true);
     
     int images = training_data->CountImages();
     std::cout << "Data loaded from images: " << std::to_string(images) << std::endl;
@@ -80,7 +81,8 @@ int trainRegressionPar(ProgramParameters& progParams, int class_expert_no = -1)
 
     
     // create a DataPointCollection in the regression format
-    std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesRegression(progParams, class_expert_no); 
+    //std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesRegression(progParams, class_expert_no); 
+    std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImages(progParams, false, class_expert_no); 
 
     int images = training_data->CountImages();
     std::cout << "Data loaded from images: " << std::to_string(images) << std::endl;
@@ -663,9 +665,10 @@ ProgramParameters getParamsFromFile(std::string& params_path)
                                     "FOREST_OUTPUT",
                                     "INPUT_PREFIX",
                                     "IMG_WIDTH",
-                                    "IMG_HEIGHT"};
+                                    "IMG_HEIGHT",
+                                    "TRAIN_ON_ZERO_IR"};
 
-    int num_categories = 20;
+    int num_categories = 21;
     try
     {
         ifstream params_file(params_path);
