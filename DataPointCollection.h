@@ -75,7 +75,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         ///  how the program will run, its inputs, and its outputs </param>
         static  std::unique_ptr<DataPointCollection> LoadImagesRegression(ProgramParameters& progParams, int class_number=-1);
 
-        static std::unique_ptr<DataPointCollection> LoadMat(cv::Mat, cv::Size img_size);
+        static std::unique_ptr<DataPointCollection> LoadMat(cv::Mat, cv::Size img_size, bool inc_zero = true, bool pre_process = true);
 
         /// <summary>
         /// Do these data have class labels?
