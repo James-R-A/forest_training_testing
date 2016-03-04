@@ -2,15 +2,15 @@ FOREST PARAMETERS FILE
 #this is a comment, the # needs to be
 # right at the start of the line because I'm lazy
 TRAINING_IMAGE_PATH:
-/home/jamesa/workspace/training_realsense
+/media/james/data_wd
 TRAINING_IMAGES:
-1200
+100
 IMAGES_START:
 0
 DEPTH_BINS:
 5
 PATCH_SIZE:
-125
+25
 DEPTH_RAW:
 NO
 TYPE:
@@ -22,7 +22,7 @@ CLASS_LEVELS:
 REG_LEVELS:
 20
 CANDIDATE_FEATURES:
-125
+10
 THRESHOLDS_PER_FEATURE:
 10
 VERBOSE:
@@ -30,9 +30,9 @@ NO
 SPLIT_FUNCTION:
 PIXEL_DIFFERENCE
 FOREST_OUTPUT:
-../forest_files/rs_1200p125n
+test_full
 INPUT_PREFIX:
-img
+test
 IMG_WIDTH:
 640
 IMG_HEIGHT:

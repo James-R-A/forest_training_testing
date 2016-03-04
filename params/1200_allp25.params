@@ -2,7 +2,7 @@ FOREST PARAMETERS FILE
 #this is a comment, the # needs to be
 # right at the start of the line because I'm lazy
 TRAINING_IMAGE_PATH:
-/media/james/data_wd/training_realsense
+/home/jamesa/workspace/training_realsense
 TRAINING_IMAGES:
 1200
 IMAGES_START:
@@ -30,7 +30,7 @@ NO
 SPLIT_FUNCTION:
 PIXEL_DIFFERENCE
 FOREST_OUTPUT:
-rs_1200p25
+rs_1200p25n
 INPUT_PREFIX:
 img
 IMG_WIDTH:
