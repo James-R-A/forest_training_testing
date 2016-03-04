@@ -36,7 +36,8 @@ int trainClassificationPar(ProgramParameters& progParams)
      
     std::cout << "Searching for some IR and depth images in " << progParams.TrainingImagesPath << std::endl;
     
-    std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesClass(progParams);
+    //std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesClass(progParams);
+    std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImages(progParams, true);
     
     int images = training_data->CountImages();
     std::cout << "Data loaded from images: " << std::to_string(images) << std::endl;
@@ -80,7 +81,8 @@ int trainRegressionPar(ProgramParameters& progParams, int class_expert_no = -1)
 
     
     // create a DataPointCollection in the regression format
-    std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesRegression(progParams, class_expert_no); 
+    //std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesRegression(progParams, class_expert_no); 
+    std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImages(progParams, false, class_expert_no); 
 
     int images = training_data->CountImages();
     std::cout << "Data loaded from images: " << std::to_string(images) << std::endl;
@@ -343,6 +345,185 @@ int applyMultiLevel(std::string forest_path)
     
 }
 
+int testForestAlternate(std::string forest_path,
+    std::string forest_prefix,
+    std::string test_image_path,
+    std::string test_image_prefix,
+    int num_images)
+{
+    if(!IPUtils::dirExists(forest_path))
+        throw std::runtime_error("Failed to find forest directory:" + forest_path);
+
+    if(!IPUtils::dirExists(test_image_path))
+        throw std::runtime_error("Failed to find test image directory:" + test_image_path);        
+
+    // check path ends in '/'
+    if(forest_path.back() != '/')
+        forest_path += "/";
+    if(test_image_path.back() != '/')
+        test_image_path += "/";
+
+    // Initialize classification forest path string and vector of expert forest class strings
+    std::string class_path = forest_path + forest_prefix + "_classifier.frst";
+    std::string e_path[] = {forest_path + forest_prefix + "_expert0.frst",
+                            forest_path + forest_prefix + "_expert1.frst",
+                            forest_path + forest_prefix + "_expert2.frst",
+                            forest_path + forest_prefix + "_expert3.frst",
+                            forest_path + forest_prefix + "_expert4.frst"};
+    std::vector<std::string> expert_path (e_path, e_path+5);
+
+     // Init a vector of pointers to forests... essentially a vector of expert regressors
+    std::vector<std::unique_ptr<ForestShared<PixelSubtractionResponse, DiffEntropyAggregator> > > experts;
+    // Init a pointer to a classifier
+    std::unique_ptr<ForestShared<PixelSubtractionResponse, HistogramAggregator> > classifier;
+    int bins = 5;
+
+    // Load the classifier and expert regressors.
+    try
+    {
+        std::cout << "Loading classifier" << std::endl;
+        // load classifier
+        std::unique_ptr<Forest<PixelSubtractionResponse, HistogramAggregator> > c_forest =
+            Forest<PixelSubtractionResponse, HistogramAggregator>::Deserialize(class_path);
+        // Create ForestShared from loaded forest
+        std::unique_ptr<ForestShared<PixelSubtractionResponse, HistogramAggregator> > c_forest_shared =
+            ForestShared<PixelSubtractionResponse, HistogramAggregator>::ForestSharedFromForest(*c_forest);
+        // Delete original forest. May roll these steps into one later if we don't need a regular forest application.
+        c_forest->~Forest();
+        c_forest.release();
+        classifier = move(c_forest_shared);
+        std::cout << "Classifier loaded with " << std::to_string(classifier->TreeCount()) << " trees" << std::endl;
+        for(int i=0;i<bins;i++)
+        {
+            std::cout << "Loading expert " << std::to_string(i) << std::endl;
+            std::unique_ptr<Forest<PixelSubtractionResponse, DiffEntropyAggregator> > e_forest =
+                Forest<PixelSubtractionResponse, DiffEntropyAggregator>::Deserialize(expert_path[i]);
+            // Create ForestShared from loaded forest
+            std::unique_ptr<ForestShared<PixelSubtractionResponse, DiffEntropyAggregator> > e_forest_shared =
+                ForestShared<PixelSubtractionResponse, DiffEntropyAggregator>::ForestSharedFromForest(*e_forest);
+            // Delete original forest. May roll these steps into one later if we don't need a regular forest application.
+            e_forest->~Forest();
+            e_forest.release();
+            std::cout << "Expert loaded with " << std::to_string(e_forest_shared->TreeCount()) << " trees" << std::endl;
+            experts.push_back(std::move(e_forest_shared));
+        }
+    }
+    catch(const std::runtime_error& e)
+    {
+        std::cerr << "Forest loading Failed" << std::endl;
+        std::cerr << e.what() << std::endl;
+    }
+    // TODO: change this prefix from img to test
+    std::string img_path = test_image_path+test_image_prefix;
+    std::string img_full_path;
+    std::string depth_path = test_image_path+test_image_prefix;
+    std::string depth_full_path;
+    cv::Mat sse_t = cv::Mat::zeros(480, 640, CV_32SC1);
+    cv::Mat err_t = cv::Mat::zeros(480, 640, CV_32SC1);
+    cv::Mat msse_t(480, 640, CV_32SC1);
+    cv::Mat sse_nt = cv::Mat::zeros(480, 640, CV_32SC1);
+    cv::Mat err_nt = cv::Mat::zeros(480, 640, CV_32SC1);
+    cv::Mat msse_nt(480, 640, CV_32SC1);
+    cv::Mat depth_image(480, 640, CV_16UC1);
+    cv::Mat test_image(480, 640, CV_8UC1);
+    cv::Mat reg_mat = cv::Mat::zeros(480, 640, CV_16UC1);
+    cv::Mat bins_mat;
+    cv::Mat result_thresh(480, 640, CV_16UC1);
+    cv::Mat depth_thresh(480, 640, CV_16UC1);
+    cv::Mat temp_mat(480, 640, CV_16UC1);
+    std::vector<float> weights_vec(bins-1);
+    int images_processed = 0;
+
+    for(int i=0;i<num_images;i++)
+    {
+        //TODO change this so it's right 
+        int image_index = i * 5;
+        img_full_path = img_path + std::to_string(image_index) + "ir.png";
+        depth_full_path = depth_path + std::to_string(image_index) + "depth.png";
+        
+        test_image = cv::imread(img_full_path, -1);
+        depth_image = cv::imread(depth_full_path, -1);
+
+        if((!depth_image.data)||(!test_image.data))
+        {
+            std::cerr << "Error loading images:\n\t" << img_full_path << "\n\t" << depth_full_path << std::endl;
+            continue;
+        }
+
+        // Pre process the test image (need to do this for the alternate training where we don't use zero inputs)
+        // TODO get some parameters into this
+        test_image = IPUtils::preProcess(test_image);
+
+        std::unique_ptr<DataPointCollection> test_data1 = DataPointCollection::LoadMat(test_image, cv::Size(640, 480));
+        bins_mat = Classifier<PixelSubtractionResponse>::ApplyMat(*classifier, *test_data1);
+        // Get the weights for weighted sum from  classifiaction results. 
+        // Essentially represents the probability for any pixel in the image to be in 
+        // a certain bin.
+        std::vector<uchar> bins_vec = IPUtils::vectorFromBins(bins_mat, cv::Size(640, 480));
+        weights_vec = IPUtils::weightsFromBins(bins_mat, cv::Size(640,480), true);
+        std::vector<uint16_t> sum_weighted_output((640*480), 0);
+
+        for(int j=0;j<bins;j++)
+        {
+            std::vector<uint16_t> expert_output = Regressor<PixelSubtractionResponse>::ApplyMat(*experts[j], *test_data1);
+            for(int k=0;k<expert_output.size();k++)
+            {
+                if(bins_vec[k] == 0)
+                    continue;
+                else
+                    sum_weighted_output[k] = sum_weighted_output[k] + uint16_t(expert_output[k] * weights_vec[j]);
+            }
+        }
+
+        int output_index = 0;
+        for(int r=0;r<640;r++)
+        {
+            uchar* test_image_pix = test_image.ptr<uchar>(r);
+            uint16_t* reg_mat_pix = reg_mat.ptr<uint16_t>(r);
+            for(int c=0;c<480;c++)
+            {
+                if(test_image_pix[c] == 0)
+                {
+                    continue;
+                }
+                else
+                {
+                    // this might fail if we go out of bounds somehow.
+                    reg_mat_pix[c] = sum_weighted_output[output_index];
+                    output_index++;
+                }
+            }
+        }
+
+        IPUtils::threshold16(reg_mat, result_thresh, 1200, 65535, 4);
+        IPUtils::threshold16(depth_image, depth_thresh, 1200, 65535, 4);
+        err_nt = IPUtils::getError(depth_image, reg_mat);
+        err_t = IPUtils::getError(depth_thresh, result_thresh); 
+        // result_thresh.convertTo(result_thresh, CV_16U, 54);
+        // depth_thresh.convertTo(depth_thresh, CV_16U, 54);
+        // cv::imshow("error_nthresh", err_nt);
+        // cv::imshow("error_thresh", err_t);
+        // cv::imshow("depth", depth_thresh);
+        // cv::imshow("result", result_thresh);
+        // cv::waitKey(30);
+        sse_t = sse_t + err_t;
+        sse_nt = sse_nt + err_nt;
+        images_processed++;
+    }
+
+    float alpha = 1.0 / images_processed;
+    msse_t = sse_t * alpha;
+    msse_nt = sse_nt * alpha;
+    cv::Scalar mean_nt, mean_t;
+    cv::Scalar std_dev_nt, std_dev_t;
+    cv::meanStdDev(msse_t, mean_t, std_dev_t);
+    cv::meanStdDev(msse_nt, mean_nt, std_dev_nt);
+    std::cout << "Mean (not thresholded): " << std::to_string(mean_nt[0]) << std::endl;
+    std::cout << "Std dev (not thresholded): " << std::to_string(std_dev_nt[0]) << std::endl;
+    std::cout << "Mean (thresholded): " << std::to_string(mean_t[0]) << std::endl;
+    std::cout << "Std dev (thresholded): " << std::to_string(std_dev_t[0]) << std::endl;
+}
+
 int testForest(std::string forest_path,
     std::string forest_prefix,
     std::string test_image_path,
@@ -530,7 +711,8 @@ int growSomeForests(ProgramParameters& progParams)
 
     if(progParams.ForestType == ForestDescriptor::All)
     {
-        for (int i=1;i<progParams.Bins;i++)
+        int start = progParams.TrainOnZeroIR? 1 : 0;
+        for (int i=start;i<progParams.Bins;i++)
         {
             try
             {
@@ -663,9 +845,10 @@ ProgramParameters getParamsFromFile(std::string& params_path)
                                     "FOREST_OUTPUT",
                                     "INPUT_PREFIX",
                                     "IMG_WIDTH",
-                                    "IMG_HEIGHT"};
+                                    "IMG_HEIGHT",
+                                    "TRAIN_ON_ZERO_IR"};
 
-    int num_categories = 20;
+    int num_categories = 21;
     try
     {
         ifstream params_file(params_path);
