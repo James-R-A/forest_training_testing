@@ -220,9 +220,7 @@ std::vector<uchar> IPUtils::vectorFromBins(cv::Mat bin_mat, cv::Size expected_si
 {
     int samples = bin_mat.size().height;
     int bins = bin_mat.size().width;
-    if (samples != expected_size.area())
-        throw "Invalid sizes!";
-
+    
     std::vector<uchar> out_vec(samples);
     
     int row_max;
@@ -388,6 +386,7 @@ double IPUtils::threshold16(cv::Mat& input_image, cv::Mat& output_image, int thr
 
 cv::Mat IPUtils::getError(cv::Mat mat_a, cv::Mat mat_b)
 {
+
     if(mat_a.size() != mat_b.size())
         throw std::runtime_error("Matrix sizes are not equal");
 
@@ -397,13 +396,14 @@ cv::Mat IPUtils::getError(cv::Mat mat_a, cv::Mat mat_b)
     int input_type = mat_a.type();
     uchar input_depth = input_type & CV_MAT_DEPTH_MASK;
     uchar chans = 1 + (input_type >> CV_CN_SHIFT);
-
     if((chans != 1) || (input_depth != CV_16U))
         throw std::runtime_error("invalid input format");
 
-    cv::Mat ret_mat(mat_a.size(), CV_32SC1);
+    //cv::Mat ret_mat(mat_a.size(), CV_32SC1);
     int rows = mat_a.size().height;
     int cols = mat_a.size().width;
+
+    cv::Mat ret_mat(rows, cols, CV_32SC1);
     uint16_t temp=0;
 
     for(int r=0;r<rows;r++)
@@ -414,11 +414,9 @@ cv::Mat IPUtils::getError(cv::Mat mat_a, cv::Mat mat_b)
         for(int c=0;c<cols;c++)
         {
             temp = abs(a_pix[c] - b_pix[c]);
-            //temp = a_pix[c] - b_pix[c];
             ret_pix[c] = temp * temp;
         }
     }
-
     return ret_mat;
 }
 

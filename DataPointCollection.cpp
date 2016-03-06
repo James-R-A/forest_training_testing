@@ -272,7 +272,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
                 uchar* ir_ptr = result->images_[0].ptr<uchar>(r);
                 for(int c=0;c<cols;c++)
                 {
-                    if(ir_ptr == 0)
+                    if(ir_ptr[c] == 0)
                     {
                         continue;
                     }

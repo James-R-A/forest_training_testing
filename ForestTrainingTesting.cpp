@@ -426,16 +426,16 @@ int testForestAlternate(std::string forest_path,
     cv::Mat msse_nt(480, 640, CV_32SC1);
     cv::Mat depth_image(480, 640, CV_16UC1);
     cv::Mat test_image(480, 640, CV_8UC1);
-    cv::Mat reg_mat = cv::Mat::zeros(480, 640, CV_16UC1);
     cv::Mat bins_mat;
     cv::Mat result_thresh(480, 640, CV_16UC1);
     cv::Mat depth_thresh(480, 640, CV_16UC1);
     cv::Mat temp_mat(480, 640, CV_16UC1);
-    std::vector<float> weights_vec(bins-1);
+    std::vector<float> weights_vec(bins);
     int images_processed = 0;
 
     for(int i=0;i<num_images;i++)
     {
+        cv::Mat reg_mat = cv::Mat::zeros(480, 640, CV_16UC1);
         //TODO change this so it's right 
         int image_index = i * 5;
         img_full_path = img_path + std::to_string(image_index) + "ir.png";
@@ -454,33 +454,35 @@ int testForestAlternate(std::string forest_path,
         // TODO get some parameters into this
         test_image = IPUtils::preProcess(test_image);
 
-        std::unique_ptr<DataPointCollection> test_data1 = DataPointCollection::LoadMat(test_image, cv::Size(640, 480));
+        std::unique_ptr<DataPointCollection> test_data1 = DataPointCollection::LoadMat(test_image, cv::Size(640, 480), false, false);
+        std::cout << "number nonzero points in test image" <<  to_string(test_data1->Count()) << std::endl;
         bins_mat = Classifier<PixelSubtractionResponse>::ApplyMat(*classifier, *test_data1);
         // Get the weights for weighted sum from  classifiaction results. 
         // Essentially represents the probability for any pixel in the image to be in 
         // a certain bin.
         std::vector<uchar> bins_vec = IPUtils::vectorFromBins(bins_mat, cv::Size(640, 480));
+        std::cout << "bins_vec_size: " << std::to_string(bins_vec.size()) << std::endl;
         weights_vec = IPUtils::weightsFromBins(bins_mat, cv::Size(640,480), true);
-        std::vector<uint16_t> sum_weighted_output((640*480), 0);
-
+        std::vector<uint16_t> sum_weighted_output(test_data1->Count(), 0);
+        std::cout << to_string(weights_vec[0]) << " " << to_string(weights_vec[1])<< " " << to_string(weights_vec[2])<< " " << to_string(weights_vec[3])<< " " << to_string(weights_vec[4]) << std::endl;
         for(int j=0;j<bins;j++)
         {
             std::vector<uint16_t> expert_output = Regressor<PixelSubtractionResponse>::ApplyMat(*experts[j], *test_data1);
+            std::cout << "expert output size " << std::to_string(j) << " " << std::to_string(expert_output.size()) << std::endl;
             for(int k=0;k<expert_output.size();k++)
             {
-                if(bins_vec[k] == 0)
-                    continue;
-                else
-                    sum_weighted_output[k] = sum_weighted_output[k] + uint16_t(expert_output[k] * weights_vec[j]);
+                sum_weighted_output[k] = sum_weighted_output[k] + uint16_t(expert_output[k] * weights_vec[j]);
             }
         }
-
+        
+        cv::Mat classification_output = cv::Mat::zeros(480, 640, CV_8UC1);
         int output_index = 0;
-        for(int r=0;r<640;r++)
+        for(int r=0;r<480;r++)
         {
+            uchar* class_pix = classification_output.ptr<uchar>(r);
             uchar* test_image_pix = test_image.ptr<uchar>(r);
             uint16_t* reg_mat_pix = reg_mat.ptr<uint16_t>(r);
-            for(int c=0;c<480;c++)
+            for(int c=0;c<640;c++)
             {
                 if(test_image_pix[c] == 0)
                 {
@@ -490,6 +492,7 @@ int testForestAlternate(std::string forest_path,
                 {
                     // this might fail if we go out of bounds somehow.
                     reg_mat_pix[c] = sum_weighted_output[output_index];
+                    class_pix[c] = bins_vec[output_index];
                     output_index++;
                 }
             }
@@ -497,15 +500,16 @@ int testForestAlternate(std::string forest_path,
 
         IPUtils::threshold16(reg_mat, result_thresh, 1200, 65535, 4);
         IPUtils::threshold16(depth_image, depth_thresh, 1200, 65535, 4);
-        err_nt = IPUtils::getError(depth_image, reg_mat);
+        err_nt = IPUtils::getError(depth_image, reg_mat);        
         err_t = IPUtils::getError(depth_thresh, result_thresh); 
-        // result_thresh.convertTo(result_thresh, CV_16U, 54);
-        // depth_thresh.convertTo(depth_thresh, CV_16U, 54);
-        // cv::imshow("error_nthresh", err_nt);
-        // cv::imshow("error_thresh", err_t);
-        // cv::imshow("depth", depth_thresh);
-        // cv::imshow("result", result_thresh);
-        // cv::waitKey(30);
+        result_thresh.convertTo(result_thresh, CV_16U, 54);
+        depth_thresh.convertTo(depth_thresh, CV_16U, 54);
+        cv::imshow("error_nthresh", err_nt);
+        cv::imshow("error_thresh", err_t);
+        cv::imshow("depth", depth_thresh);
+        cv::imshow("result", result_thresh);
+        cv::imshow("classifiection_output", classification_output);
+        cv::waitKey(30);
         sse_t = sse_t + err_t;
         sse_nt = sse_nt + err_nt;
         images_processed++;
@@ -941,6 +945,24 @@ int main(int argc, char *argv[])
                 test_image_path, 
                 test_image_prefix, 
                 num_test_images);
+        }
+        else if(frst_arg.compare("-ta")==0)
+        {
+            std::string forest_path = argv[2];
+            std::string forest_prefix = argv[3];
+            std::string test_image_path = argv[4];
+            std::string test_image_prefix = argv[5];
+            int num_test_images = std::stoi(std::string(argv[6]));
+            std::cout << "Forest path: " << forest_path << std::endl;
+            std::cout << "Forest prefix: " << forest_prefix << std::endl;
+            std::cout << "Test image path: " << test_image_path << std::endl;
+            std::cout << "Test image prefix: " << test_image_prefix << std::endl;
+            std::cout << "Images to use in testing: " << std::to_string(num_test_images) << std::endl;
+            testForestAlternate(forest_path, 
+                forest_prefix, 
+                test_image_path, 
+                test_image_prefix, 
+                num_test_images);    
         }
         else
         {
