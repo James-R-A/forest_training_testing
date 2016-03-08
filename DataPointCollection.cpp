@@ -89,10 +89,11 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         // Variables affecting class formation
         bool zero_class = true;
         int total_classes = progParams.Bins;
+        int max_range = progParams.MR;
         // This max parameter is important. Don't forget this is aimed at 16 bit unsigned ints, 
         // so the viable range is 0-65535. 
         // If not using RAW depth data format, it's measured in mm, so be sensible (i.e. 1000 - 1500 mm?)
-        int max = progParams.DepthRaw ? 65000 : 1200;
+        int max = progParams.DepthRaw ? 65000 : max_range;
         result->pixelLabels_ = IPUtils::generateDepthBinMap(true, total_classes, max);
         cv::Mat ir_image, ir_preprocessed, depth_image, depth_labels;
 
@@ -272,7 +273,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
                 uchar* ir_ptr = result->images_[0].ptr<uchar>(r);
                 for(int c=0;c<cols;c++)
                 {
-                    if(ir_ptr == 0)
+                    if(ir_ptr[c] == 0)
                     {
                         continue;
                     }

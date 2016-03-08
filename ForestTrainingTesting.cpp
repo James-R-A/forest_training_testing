@@ -19,6 +19,7 @@ using namespace MicrosoftResearch::Cambridge::Sherwood;
 #define LOOP_DELAY 30
 #define DEF_REG_LEVELS 20
 #define DEF_CLASS_LEVELS 22
+#define THRESHOLD_PARAM 1200
 
 #ifdef _WIN32
 const std::string FILE_PATH = "D:\\";
@@ -426,18 +427,21 @@ int testForestAlternate(std::string forest_path,
     cv::Mat msse_nt(480, 640, CV_32SC1);
     cv::Mat depth_image(480, 640, CV_16UC1);
     cv::Mat test_image(480, 640, CV_8UC1);
-    cv::Mat reg_mat = cv::Mat::zeros(480, 640, CV_16UC1);
     cv::Mat bins_mat;
     cv::Mat result_thresh(480, 640, CV_16UC1);
     cv::Mat depth_thresh(480, 640, CV_16UC1);
     cv::Mat temp_mat(480, 640, CV_16UC1);
-    std::vector<float> weights_vec(bins-1);
+    std::vector<float> weights_vec(bins);
     int images_processed = 0;
+
+    //Random random;
+    //std::vector<int> rand_ints = random.RandomVector(0,11000,num_images,false);
 
     for(int i=0;i<num_images;i++)
     {
-        //TODO change this so it's right 
-        int image_index = i * 5;
+        //int image_index = rand_ints[i];
+        int image_index = 10000+i;
+        cv::Mat reg_mat = cv::Mat::zeros(480, 640, CV_16UC1);
         img_full_path = img_path + std::to_string(image_index) + "ir.png";
         depth_full_path = depth_path + std::to_string(image_index) + "depth.png";
         
@@ -454,33 +458,29 @@ int testForestAlternate(std::string forest_path,
         // TODO get some parameters into this
         test_image = IPUtils::preProcess(test_image);
 
-        std::unique_ptr<DataPointCollection> test_data1 = DataPointCollection::LoadMat(test_image, cv::Size(640, 480));
+        std::unique_ptr<DataPointCollection> test_data1 = DataPointCollection::LoadMat(test_image, cv::Size(640, 480), false, false);
         bins_mat = Classifier<PixelSubtractionResponse>::ApplyMat(*classifier, *test_data1);
         // Get the weights for weighted sum from  classifiaction results. 
         // Essentially represents the probability for any pixel in the image to be in 
         // a certain bin.
-        std::vector<uchar> bins_vec = IPUtils::vectorFromBins(bins_mat, cv::Size(640, 480));
+        
         weights_vec = IPUtils::weightsFromBins(bins_mat, cv::Size(640,480), true);
-        std::vector<uint16_t> sum_weighted_output((640*480), 0);
-
+        std::vector<uint16_t> sum_weighted_output(test_data1->Count(), 0);
         for(int j=0;j<bins;j++)
         {
             std::vector<uint16_t> expert_output = Regressor<PixelSubtractionResponse>::ApplyMat(*experts[j], *test_data1);
             for(int k=0;k<expert_output.size();k++)
             {
-                if(bins_vec[k] == 0)
-                    continue;
-                else
-                    sum_weighted_output[k] = sum_weighted_output[k] + uint16_t(expert_output[k] * weights_vec[j]);
+                sum_weighted_output[k] = sum_weighted_output[k] + uint16_t(expert_output[k] * weights_vec[j]);
             }
         }
-
+        
         int output_index = 0;
-        for(int r=0;r<640;r++)
+        for(int r=0;r<480;r++)
         {
             uchar* test_image_pix = test_image.ptr<uchar>(r);
             uint16_t* reg_mat_pix = reg_mat.ptr<uint16_t>(r);
-            for(int c=0;c<480;c++)
+            for(int c=0;c<640;c++)
             {
                 if(test_image_pix[c] == 0)
                 {
@@ -495,9 +495,9 @@ int testForestAlternate(std::string forest_path,
             }
         }
 
-        IPUtils::threshold16(reg_mat, result_thresh, 1200, 65535, 4);
-        IPUtils::threshold16(depth_image, depth_thresh, 1200, 65535, 4);
-        err_nt = IPUtils::getError(depth_image, reg_mat);
+        IPUtils::threshold16(reg_mat, result_thresh, THRESHOLD_PARAM, 65535, 4);
+        IPUtils::threshold16(depth_image, depth_thresh, THRESHOLD_PARAM, 65535, 4);
+        err_nt = IPUtils::getError(depth_image, reg_mat);        
         err_t = IPUtils::getError(depth_thresh, result_thresh); 
         // result_thresh.convertTo(result_thresh, CV_16U, 54);
         // depth_thresh.convertTo(depth_thresh, CV_16U, 54);
@@ -505,7 +505,7 @@ int testForestAlternate(std::string forest_path,
         // cv::imshow("error_thresh", err_t);
         // cv::imshow("depth", depth_thresh);
         // cv::imshow("result", result_thresh);
-        // cv::waitKey(30);
+        cv::waitKey(30);
         sse_t = sse_t + err_t;
         sse_nt = sse_nt + err_nt;
         images_processed++;
@@ -611,9 +611,13 @@ int testForest(std::string forest_path,
     std::vector<float> weights_vec(bins-1);
     int images_processed = 0;
 
+    //Random random;
+    //std::vector<int> rand_ints = random.RandomVector(0,11000,num_images,false);
+
     for(int i=0;i<num_images;i++)
     {
-        int image_index = i * 5;
+        //int image_index = rand_ints[i];
+        int image_index = 10000+i;
         img_full_path = img_path + std::to_string(image_index) + "ir.png";
         depth_full_path = depth_path + std::to_string(image_index) + "depth.png";
         
@@ -647,8 +651,8 @@ int testForest(std::string forest_path,
             }
         }
         reg_mat = cv::Mat(480, 640, CV_16UC1, (uint16_t*)sum_weighted_output.data());
-        IPUtils::threshold16(reg_mat, result_thresh, 1200, 65535, 4);
-        IPUtils::threshold16(depth_image, depth_thresh, 1200, 65535, 4);
+        IPUtils::threshold16(reg_mat, result_thresh, THRESHOLD_PARAM, 65535, 4);
+        IPUtils::threshold16(depth_image, depth_thresh, THRESHOLD_PARAM, 65535, 4);
         err_nt = IPUtils::getError(depth_image, reg_mat);
         err_t = IPUtils::getError(depth_thresh, result_thresh); 
         // result_thresh.convertTo(result_thresh, CV_16U, 54);
@@ -678,6 +682,12 @@ int testForest(std::string forest_path,
 
 void testFunction()
 {
+    Random random;
+    std::vector<int> rand_ints = random.RandomVector(0,1000,100,false);
+    for(int i=0;i<100;i++)
+    {
+        std::cout << to_string(rand_ints[i]) << std::endl;
+    }
 }
 
 int growSomeForests(ProgramParameters& progParams)
@@ -846,9 +856,10 @@ ProgramParameters getParamsFromFile(std::string& params_path)
                                     "INPUT_PREFIX",
                                     "IMG_WIDTH",
                                     "IMG_HEIGHT",
-                                    "TRAIN_ON_ZERO_IR"};
+                                    "TRAIN_ON_ZERO_IR",
+                                    "MAX_RANGE"};
 
-    int num_categories = 21;
+    int num_categories = 22;
     try
     {
         ifstream params_file(params_path);
@@ -941,6 +952,24 @@ int main(int argc, char *argv[])
                 test_image_path, 
                 test_image_prefix, 
                 num_test_images);
+        }
+        else if(frst_arg.compare("-ta")==0)
+        {
+            std::string forest_path = argv[2];
+            std::string forest_prefix = argv[3];
+            std::string test_image_path = argv[4];
+            std::string test_image_prefix = argv[5];
+            int num_test_images = std::stoi(std::string(argv[6]));
+            std::cout << "Forest path: " << forest_path << std::endl;
+            std::cout << "Forest prefix: " << forest_prefix << std::endl;
+            std::cout << "Test image path: " << test_image_path << std::endl;
+            std::cout << "Test image prefix: " << test_image_prefix << std::endl;
+            std::cout << "Images to use in testing: " << std::to_string(num_test_images) << std::endl;
+            testForestAlternate(forest_path, 
+                forest_prefix, 
+                test_image_path, 
+                test_image_prefix, 
+                num_test_images);    
         }
         else
         {

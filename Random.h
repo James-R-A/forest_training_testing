@@ -39,6 +39,35 @@ namespace MicrosoftResearch {
           return minValue + Next() % (maxValue - minValue);
         }
 
+        std::vector<int> RandomVector(int minValue, int maxValue, int length, bool replacement)
+        {
+          if((maxValue - minValue < length)&&!replacement)
+            throw std::runtime_error("Not enough integers in that range");
+
+          int rand_int;
+          std::vector<int> random_vec;
+          random_vec.resize(length);
+          std::vector<int>::iterator it;
+          bool continue_flag = false;
+          bool continue_reset = replacement? true : false;
+          for(int i=0;i<length;i++)
+          {
+            continue_flag = false;
+            while(!continue_flag)
+            {
+              rand_int = Next(minValue,maxValue);
+              it = find(random_vec.begin(), random_vec.end(), rand_int);
+              if(it == random_vec.end())
+              {
+                continue_flag = true;
+                random_vec[i] = rand_int;
+              }
+            }
+
+          }
+          return random_vec;
+        }
+
       private:
         const int a, c;
         const unsigned int m;
