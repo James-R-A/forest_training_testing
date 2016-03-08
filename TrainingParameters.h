@@ -298,7 +298,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       std::string dr = DepthRaw? "True" : "False";
       std::cout << "Depth Raw: \t\t\t" << dr << std::endl;
       std::cout << "Patch Size: \t\t\t" << std::to_string(PatchSize) << std::endl;
-      std::cout << "Max Depth Range: \t\t\t" << std::to_string(MR) << std::endl;
+      std::cout << "Max Depth Range: \t\t" << std::to_string(MR) << std::endl;
       std::cout << "Image Width:\t\t\t" << std::to_string(ImgWidth) << std::endl;
       std::cout << "Image Height:\t\t\t" << std::to_string(ImgHeight) << std::endl;
       std::cout << "Forest output prefix: \t\t" << OutputFilename << std::endl;
