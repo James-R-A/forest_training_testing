@@ -81,6 +81,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
     int ImgHeight;
     int ImgWidth;
     bool TrainOnZeroIR;
+    int MR;
 
     ProgramParameters()
     {
@@ -98,6 +99,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       ImgHeight = 480;
       ImgWidth = 640;
       TrainOnZeroIR = true;
+      MR = 1200;
     }
 
     bool setParam(std::string parameter, std::string value)
@@ -265,6 +267,14 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         else
           throw std::runtime_error("Invalid value for TRAIN_ON_ZERO_IR, expected YES or NO");
       }
+      else if(parameter.compare("MAX_RANGE")==0)
+      {
+        int n = std::stoi(value);
+        if((n <= 1200)&&(n>=500))
+          MR = n;
+        else
+          throw std::runtime_error("Max range must be between 500 and 1200");
+      }
       else
         return false;
 
@@ -288,6 +298,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       std::string dr = DepthRaw? "True" : "False";
       std::cout << "Depth Raw: \t\t\t" << dr << std::endl;
       std::cout << "Patch Size: \t\t\t" << std::to_string(PatchSize) << std::endl;
+      std::cout << "Max Depth Range: \t\t\t" << std::to_string(MR) << std::endl;
       std::cout << "Image Width:\t\t\t" << std::to_string(ImgWidth) << std::endl;
       std::cout << "Image Height:\t\t\t" << std::to_string(ImgHeight) << std::endl;
       std::cout << "Forest output prefix: \t\t" << OutputFilename << std::endl;
