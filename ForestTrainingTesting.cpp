@@ -683,11 +683,21 @@ int testForest(std::string forest_path,
 void testFunction()
 {
     Random random;
-    std::vector<int> rand_ints = random.RandomVector(0,1000,100,false);
     for(int i=0;i<100;i++)
     {
-        std::cout << to_string(rand_ints[i]) << std::endl;
+        int random_int = random.Next(0,10000);
+        std::string file_name = "/media/james/data_wd/training_images_2/pair" + to_string(random_int);
+        cv::Mat ir_image = cv::imread(file_name + "cam.png", -1);
+        cv::Mat depth_image = cv::imread(file_name + "depth.png", -1);
+
+        if(ir_image.data && depth_image.data)
+            std::cout << "Testing threshold with image " << file_name << std::endl;
+
+        int best_thresh = IPUtils::getBestThreshold(ir_image, depth_image, 1000);
+
+        std::cout << "Best threshold: " << std::to_string(best_thresh) << std::endl;
     }
+
 }
 
 int growSomeForests(ProgramParameters& progParams)

@@ -98,7 +98,7 @@ cv::Mat IPUtils::getThresholded(cv::Mat image_in, int threshold_value, int thres
         grayscale_image = image_in;
 
     cv::Mat output_image = grayscale_image;
-    threshold(grayscale_image, output_image, threshold_value, 255, threshold_type);
+    cv::threshold(grayscale_image, output_image, threshold_value, 255, threshold_type);
 
     return output_image;
 }
@@ -114,7 +114,7 @@ cv::Mat IPUtils::getBilateralFiltered(cv::Mat image_in, int value)
         grayscale_image = image_in;
 
     cv::Mat output_image;
-    bilateralFilter(grayscale_image, output_image, 5, value, value);
+    cv::bilateralFilter(grayscale_image, output_image, 5, value, value);
 
     return output_image;
 }
@@ -418,6 +418,65 @@ cv::Mat IPUtils::getError(cv::Mat mat_a, cv::Mat mat_b)
         }
     }
     return ret_mat;
+}
+
+int IPUtils::getBestThreshold(cv::Mat ir_image, cv::Mat depth_image, int depth_max)
+{
+    if(ir_image.size() != depth_image.size())
+        throw std::runtime_error("Matrix sizes are not equal");
+
+    int ir_type = ir_image.type();
+    uchar input_depth = ir_type & CV_MAT_DEPTH_MASK;
+    uchar chans = 1 + (ir_type >> CV_CN_SHIFT);
+    if((chans != 1) || (input_depth != CV_8U))
+        throw std::runtime_error("invalid ir format");
+
+    int depth_type = depth_image.type();
+    input_depth = depth_type & CV_MAT_DEPTH_MASK;
+    chans = 1 + (depth_type >> CV_CN_SHIFT);
+    if((chans != 1) || (input_depth != CV_16U))
+        throw std::runtime_error("invalid depth format");
+
+
+    int rows = ir_image.size().height;
+    int cols = ir_image.size().width;
+
+    cv::Mat depth_thresh_tmp(rows, cols, CV_16UC1);
+    cv::Mat depth_thresh(rows, cols, CV_16UC1);
+    // take everything above depth_max to zero
+    threshold16(depth_image, depth_thresh_tmp, depth_max, 65535, 4);
+    // all non-zero to 255 - binary threshold
+    threshold16(depth_thresh_tmp, depth_thresh, 0, 255, 0);
+    depth_thresh.convertTo(depth_thresh, CV_8U);
+    
+    int best_error = rows*cols;
+    int best_threshold_value =  0;
+    // binary search for best threshold value to match the two binary images
+    for(int i=0;i<=255;i++)
+    {        
+       cv::Mat ir_thresh;
+       cv::threshold(ir_image, ir_thresh, i, 255, 0);
+       int error = 0;
+       for(int r=0;r<rows;r++)
+       {
+            uint8_t* d_pix = depth_thresh.ptr<uint8_t>(r);
+            uint8_t* ir_pix = ir_thresh.ptr<uint8_t>(r);
+            for(int c=0;c<cols;c++)
+            {
+                if(ir_pix[c] != d_pix[c])
+                {
+                    error++;
+                }
+            }
+       }
+       if(error < best_error)
+       {
+            best_threshold_value = i;
+            best_error = error;
+       }
+    }
+    return best_threshold_value;
+
 }
 
 #ifdef __WIN32

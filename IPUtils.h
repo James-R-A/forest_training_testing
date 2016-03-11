@@ -67,6 +67,8 @@ public:
     /// <param name="mat_a"> second input matrix </param>
     static cv::Mat getError(cv::Mat mat_a, cv::Mat mat_b);
     
+    static int getBestThreshold(cv::Mat ir_image, cv::Mat depth_image, int depth_max);
+
     IPUtils();
     ~IPUtils();
 };
