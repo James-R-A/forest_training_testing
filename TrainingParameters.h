@@ -330,6 +330,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       std::cout << "Verbose: \t\t\t" << (Tpc.Verbose? "Yes" : "no") << std::endl;
       std::cout << "Train on zero IR: \t\t" << (TrainOnZeroIR? "Yes" : "no") << std::endl;
       std::cout << "IR threshold value: \t\t" << std::to_string(Threshold) << std::endl;
+      std::cout << "Webcam? \t\t\t" << (Webcam? "Yes" : "No") << std::endl;
       std::cout << "Max threads to use: \t\t" << std::to_string(Tpr.MaxThreads) << std::endl;
       
 

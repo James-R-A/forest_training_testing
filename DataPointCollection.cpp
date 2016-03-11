@@ -106,8 +106,8 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         for (int i = first; i <= last;i++)
         {
             // generate individual image paths
-            ir_path = path + "/" + prefix + std::to_string(i) + ir_path_suffix;
-            depth_path = path + "/" + prefix + std::to_string(i) + "depth.png";
+            ir_path = path + prefix + std::to_string(i) + ir_path_suffix;
+            depth_path = path + prefix + std::to_string(i) + "depth.png";
 
             //std::cout << std::to_string(i) << std::endl;
             // read depth and ir images
