@@ -83,6 +83,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
     bool TrainOnZeroIR;
     int MR;
     int Threshold;
+    bool Webcam;
 
     ProgramParameters()
     {
@@ -102,6 +103,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       TrainOnZeroIR = true;
       MR = 1200;
       Threshold = 38;
+      Webcam = false;
     }
 
     bool setParam(std::string parameter, std::string value)
@@ -284,6 +286,13 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
           Threshold = n;
         else
           throw std::runtime_error("Threshold must be between 0 and 255");
+      }
+      else if(parameter.compare("WEBCAM")==0)
+      {
+        if(value.compare("YES")==0)
+          Webcam = true;
+        else
+          Webcam = false;
       }
       else
         return false;

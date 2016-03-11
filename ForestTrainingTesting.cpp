@@ -916,9 +916,10 @@ ProgramParameters getParamsFromFile(std::string& params_path)
                                     "IMG_HEIGHT",
                                     "TRAIN_ON_ZERO_IR",
                                     "MAX_RANGE",
-                                    "TH_VALUE"};
+                                    "TH_VALUE",
+                                    "WEBCAM"};
 
-    int num_categories = 23;
+    int num_categories = 24;
     try
     {
         ifstream params_file(params_path);

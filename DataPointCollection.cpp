@@ -101,10 +101,12 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         std::string depth_path;
         cv::Size ir_size, depth_size;
 
+        std::string ir_path_suffix = progParams.Webcam? "cam.png" : "ir.png";
+
         for (int i = first; i <= last;i++)
         {
             // generate individual image paths
-            ir_path = path + "/" + prefix + std::to_string(i) + "ir.png";
+            ir_path = path + "/" + prefix + std::to_string(i) + ir_path_suffix;
             depth_path = path + "/" + prefix + std::to_string(i) + "depth.png";
 
             //std::cout << std::to_string(i) << std::endl;
