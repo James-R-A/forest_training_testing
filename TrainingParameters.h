@@ -82,6 +82,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
     int ImgWidth;
     bool TrainOnZeroIR;
     int MR;
+    int Threshold;
 
     ProgramParameters()
     {
@@ -100,6 +101,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       ImgWidth = 640;
       TrainOnZeroIR = true;
       MR = 1200;
+      Threshold = 38;
     }
 
     bool setParam(std::string parameter, std::string value)
@@ -275,6 +277,14 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         else
           throw std::runtime_error("Max range must be between 500 and 1200");
       }
+      else if(parameter.compare("TH_VALUE")==0)
+      {
+        int n = std::stoi(value);
+        if((n<=255) && (n>=0))
+          Threshold = n;
+        else
+          throw std::runtime_error("Threshold must be between 0 and 255");
+      }
       else
         return false;
 
@@ -310,6 +320,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       std::cout << "ExpertClassNo: \t\t\t" << std::to_string(ExpertClassNo) << std::endl;
       std::cout << "Verbose: \t\t\t" << (Tpc.Verbose? "Yes" : "no") << std::endl;
       std::cout << "Train on zero IR: \t\t" << (TrainOnZeroIR? "Yes" : "no") << std::endl;
+      std::cout << "IR threshold value: \t\t" << std::to_string(Threshold) << std::endl;
       std::cout << "Max threads to use: \t\t" << std::to_string(Tpr.MaxThreads) << std::endl;
       
 

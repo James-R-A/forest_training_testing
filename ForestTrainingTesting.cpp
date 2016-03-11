@@ -683,7 +683,10 @@ int testForest(std::string forest_path,
 void testFunction()
 {
     Random random;
-    for(int i=0;i<100;i++)
+    int size = 1000;
+    std::vector<int> threshold_values(size);
+    std::vector<int> error_values(size);
+    for(int i=0;i<size;i++)
     {
         int random_int = random.Next(0,10000);
         std::string file_name = "/media/james/data_wd/training_images_2/pair" + to_string(random_int);
@@ -693,10 +696,55 @@ void testFunction()
         if(ir_image.data && depth_image.data)
             std::cout << "Testing threshold with image " << file_name << std::endl;
 
-        int best_thresh = IPUtils::getBestThreshold(ir_image, depth_image, 1000);
+        threshold_values[i] = IPUtils::getBestThreshold(ir_image, depth_image, 1000, error_values[i]);
 
-        std::cout << "Best threshold: " << std::to_string(best_thresh) << std::endl;
+        std::cout << "Best threshold: " << std::to_string(threshold_values[i])  << " " << std::to_string(error_values[i]) << std::endl;
     }
+    sort(threshold_values.begin(), threshold_values.end());
+    int median;
+    int sum_t = 0;
+    uint32_t sum_e = 0;
+    int mean_e;
+    int mean;
+    std::vector<int> histogram(255);
+
+    for(int i=0;i<size;i++)
+    {
+        sum_t += threshold_values[i];
+        sum_e += uint32_t(error_values[i]);
+        histogram[threshold_values[i]]++;
+    }
+
+    mean = round(float(sum_t) / size);
+    mean_e = round(float(sum_e) / size);
+
+    if(size%2==0)
+    {
+        median = (threshold_values[size/2] + threshold_values[(size/2) - 1])/2;
+    }
+    else
+    {
+        median = threshold_values[size/2];
+    }
+
+    ofstream histogram_file;
+    histogram_file.open("/home/james/workspace/histogram_file.csv");
+    if(histogram_file.is_open())
+    {
+        for(int i=0;i<255;i++)
+        {
+            histogram_file << to_string(histogram[i]) << ",";
+        }
+        histogram_file.close();
+    }
+    else
+    {
+        std::cout << "Unable to open file" << std::endl;
+    }
+
+    std::cout << "Mean: " << std::to_string(mean) << std::endl;
+    std::cout << "Median: " << std::to_string(median) << std::endl;
+    std::cout << "Mean Error: " << std::to_string(mean_e) << std::endl;
 
 }
 
@@ -867,9 +915,10 @@ ProgramParameters getParamsFromFile(std::string& params_path)
                                     "IMG_WIDTH",
                                     "IMG_HEIGHT",
                                     "TRAIN_ON_ZERO_IR",
-                                    "MAX_RANGE"};
+                                    "MAX_RANGE",
+                                    "TH_VALUE"};
 
-    int num_categories = 22;
+    int num_categories = 23;
     try
     {
         ifstream params_file(params_path);

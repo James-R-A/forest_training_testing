@@ -136,7 +136,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
                 throw std::runtime_error("Depth and IR images not the same size:\n\t" + ir_path + depth_path);
 
             // Send the ir image for preprocessing, default values used for now
-            ir_preprocessed = IPUtils::preProcess(ir_image);
+            ir_preprocessed = IPUtils::preProcess(ir_image, progParams.Threshold);
             result->images_[img_no] = ir_preprocessed;
 
             // Create matrix of depth labels (ie depth bins)
@@ -233,7 +233,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         return result;
     }
 
-    std::unique_ptr<DataPointCollection> DataPointCollection::LoadMat(cv::Mat mat_in, cv::Size img_size, bool inc_zero , bool pre_process)
+    std::unique_ptr<DataPointCollection> DataPointCollection::LoadMat(cv::Mat mat_in, cv::Size img_size, bool inc_zero , bool pre_process, int pp_value)
     {
         // If the datatypes in the images are incorrect
         if (IPUtils::getTypeString(mat_in.type()) != "8UC1")
@@ -249,7 +249,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         
         if(pre_process)
         {
-            result->images_[0] = IPUtils::preProcess(mat_in);
+            result->images_[0] = IPUtils::preProcess(mat_in, pp_value);
         }
         else 
         {

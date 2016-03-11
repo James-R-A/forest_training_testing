@@ -142,7 +142,7 @@ std::string IPUtils::getTypeString(int type) {
     return r;
 }
 
-cv::Mat IPUtils::preProcess(cv::Mat image_in, int bilat_param, int threshold_value, int threshold_type)
+cv::Mat IPUtils::preProcess(cv::Mat image_in, int threshold_value, int bilat_param, int threshold_type)
 {
     cv::Mat temp;
 
@@ -420,7 +420,7 @@ cv::Mat IPUtils::getError(cv::Mat mat_a, cv::Mat mat_b)
     return ret_mat;
 }
 
-int IPUtils::getBestThreshold(cv::Mat ir_image, cv::Mat depth_image, int depth_max)
+int IPUtils::getBestThreshold(cv::Mat ir_image, cv::Mat depth_image, int depth_max, int& best_error_out)
 {
     if(ir_image.size() != depth_image.size())
         throw std::runtime_error("Matrix sizes are not equal");
@@ -475,6 +475,7 @@ int IPUtils::getBestThreshold(cv::Mat ir_image, cv::Mat depth_image, int depth_m
             best_error = error;
        }
     }
+    best_error_out = best_error;
     return best_threshold_value;
 
 }

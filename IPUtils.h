@@ -36,7 +36,7 @@ public:
     /// <param name="threshold_value">Value for static threshold, pixels with intensity 
     ///                               below this value are set to 0 </param>
     /// <param name="threshold_type">Defaults to 3. don't change it for forest training</param>
-    static cv::Mat preProcess(cv::Mat image_in, int bilat_param=30, int threshold_value=36, int threshold_type=3);
+    static cv::Mat preProcess(cv::Mat image_in, int threshold_value=36, int bilat_param=30, int threshold_type=3);
 
     /// <summary>
     /// Generates a pixel intensity to bin number look-up-table
@@ -67,7 +67,7 @@ public:
     /// <param name="mat_a"> second input matrix </param>
     static cv::Mat getError(cv::Mat mat_a, cv::Mat mat_b);
     
-    static int getBestThreshold(cv::Mat ir_image, cv::Mat depth_image, int depth_max);
+    static int getBestThreshold(cv::Mat ir_image, cv::Mat depth_image, int depth_max, int& best_error_out);
 
     IPUtils();
     ~IPUtils();
