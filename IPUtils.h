@@ -69,6 +69,8 @@ public:
     
     static int getBestThreshold(cv::Mat ir_image, cv::Mat depth_image, int depth_max, int& best_error_out);
 
+    static int getTallestBin(cv::Mat& binned_image, int num_bins = 5, bool ignore_zero = true);
+
     IPUtils();
     ~IPUtils();
 };

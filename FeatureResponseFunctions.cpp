@@ -24,10 +24,10 @@ namespace MicrosoftResearch {
                 cv::Size datum_mat_size = datum_matp->size();
                 cv::Rect boundry = cv::Rect(0, 0, datum_mat_size.width, datum_mat_size.height);
 
-                std::vector<cv::Point> probe_point;
-                probe_point.resize(dimensions);
-                std::vector<float> pixel_value;
-                pixel_value.resize(dimensions);
+                std::vector<cv::Point> probe_point(dimensions);
+                // probe_point.resize(dimensions);
+                std::vector<float> pixel_value(dimensions);
+                // pixel_value.resize(dimensions);
                 float response = 0;
                 for (unsigned int c = 0; c < dimensions; c++)
                 {
@@ -37,7 +37,7 @@ namespace MicrosoftResearch {
                     else
                         pixel_value[c] = 0;
 
-                    response += n[c] * pixel_value[c];
+                    response += float(pixel_value[c]);
                 }
                 
                 return response;

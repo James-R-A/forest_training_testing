@@ -46,7 +46,11 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
         // Set up DataPointCollection object
         std::unique_ptr<DataPointCollection> result = std::unique_ptr<DataPointCollection>(new DataPointCollection());
-        result->dimension_ = progParams.PatchSize * progParams.PatchSize;
+        if(progParams.SplitFunctionType == SplitFunctionDescriptor::PixelDifference)
+            result->dimension_ = progParams.PatchSize * progParams.PatchSize;
+        else
+            result->dimension_ = progParams.PatchSize;
+
         result->depth_raw = progParams.DepthRaw;
         result->image_size = img_size;
         result->step = img_size.height * img_size.width;
@@ -137,12 +141,23 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
             if (ir_size != depth_size)
                 throw std::runtime_error("Depth and IR images not the same size:\n\t" + ir_path + depth_path);
 
+            // Create matrix of depth labels (ie depth bins)
+            depth_labels = createLabelMatrix(depth_image, result->pixelLabels_);
+            if(!progParams.Closeup)
+            {
+                int tallest_bin = IPUtils::getTallestBin(depth_labels);
+                std::cout << std::to_string(tallest_bin) << std::endl;
+                if(tallest_bin == 1)
+                {
+                    continue;
+                }
+            }
+
             // Send the ir image for preprocessing, default values used for now
             ir_preprocessed = IPUtils::preProcess(ir_image, progParams.Threshold);
             result->images_[img_no] = ir_preprocessed;
 
-            // Create matrix of depth labels (ie depth bins)
-            depth_labels = createLabelMatrix(depth_image, result->pixelLabels_);
+            
             // iterate through depth_labels matrix and add each element
             // to results.
             // Separated classification and regression out to try and
@@ -219,7 +234,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
             img_no++;
         }
 
-        if(!(result->low_memory))
+        if((!result->low_memory) || (!progParams.Closeup))
         {   
             // TODO need to deal with empty data point collections. Otherwise errors caused in training
             // Resize data and targets vector to however full they are.
@@ -230,8 +245,10 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
             result->labels_.shrink_to_fit();
             result->targets_.resize(target_no);
             result->targets_.shrink_to_fit();
+            result->images_.resize(img_no);
+            result->images_.shrink_to_fit();
         }
-
+        
         return result;
     }
 

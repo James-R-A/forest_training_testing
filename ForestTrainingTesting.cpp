@@ -110,6 +110,88 @@ int trainRegressionPar(ProgramParameters& progParams, int class_expert_no = -1)
     return 0;
 }
 
+int trainClassificationRH(ProgramParameters& progParams)
+{
+    if(progParams.TrainingImagesPath.back() != '/')
+        progParams.TrainingImagesPath += "/";
+
+    std::string filename = progParams.TrainingImagesPath + progParams.OutputFilename + "_classifier.frst";
+     
+    std::cout << "Searching for some IR and depth images in " << progParams.TrainingImagesPath << std::endl;
+    
+    //std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesClass(progParams);
+    std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImages(progParams, true);
+    
+    int images = training_data->CountImages();
+    std::cout << "Data loaded from images: " << std::to_string(images) << std::endl;
+    std::cout << "of size: " << std::to_string(progParams.ImgHeight * progParams.ImgWidth) << std::endl;
+    std::cout << "Total points:" << std::to_string(training_data->Count()) << std::endl;
+    std::cout << (training_data->low_memory? "Low Memory Implementation" : "Inefficient Memory Implementation") << std::endl;
+ 
+    std::cout << "\nAttempting training" << std::endl;
+    try
+    {
+        std::unique_ptr<Forest<RandomHyperplaneFeatureResponse, HistogramAggregator> > forest = 
+            Classifier<RandomHyperplaneFeatureResponse>::TrainPar(*training_data, progParams.Tpc);
+
+        forest->Serialize(filename);
+        std::cout << "Training complete, forest saved in :" << filename << std::endl;
+    }
+    catch (const std::runtime_error& e)
+    {
+        std::cout << "Training Failed" << std::endl;
+        std::cerr << e.what() << std::endl;
+    }
+
+    return 0;
+}
+
+int trainRegressionRH(ProgramParameters& progParams, int class_expert_no = -1)
+{
+    std::string file_suffix;
+    
+    if(class_expert_no != -1)
+        file_suffix = "_expert" + std::to_string(class_expert_no) + ".frst";
+    else
+        file_suffix = "_regressor.frst";
+
+    if(progParams.TrainingImagesPath.back() != '/')
+        progParams.TrainingImagesPath += "/";
+
+    std::string filename = progParams.TrainingImagesPath + progParams.OutputFilename + file_suffix;
+
+    std::cout << "Searching for some IR and depth images in " << progParams.TrainingImagesPath << std::endl;
+
+    
+    // create a DataPointCollection in the regression format
+    //std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesRegression(progParams, class_expert_no); 
+    std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImages(progParams, false, class_expert_no); 
+
+    int images = training_data->CountImages();
+    std::cout << "Data loaded from images: " << std::to_string(images) << std::endl;
+    std::cout << "of size: " << std::to_string(progParams.ImgHeight * progParams.ImgWidth) << std::endl;
+    std::cout << "Total points:" << std::to_string(training_data->Count()) << std::endl;
+    std::cout << (training_data->low_memory? "Low Memory Implementation" : "Inefficient Memory Implementation") << std::endl;
+
+    // Train a regressoin forest
+    std::cout << "\nAttempting training" << std::endl;
+    try
+    {
+        std::unique_ptr<Forest<RandomHyperplaneFeatureResponse, DiffEntropyAggregator> > forest =
+            Regressor<RandomHyperplaneFeatureResponse>::TrainPar(*training_data, progParams.Tpr);
+
+        forest->Serialize(filename);
+        std::cout << "Training complete, forest saved in :" << filename << std::endl;
+    }
+    catch (const std::runtime_error& e)
+    {
+        std::cerr << "Training Failed" << std::endl;
+        std::cerr << e.what() << std::endl;
+    }
+
+    return 0;
+}
+
 int regressOnline(std::string dir_path)
 {
     if (!IPUtils::dirExists(dir_path))
@@ -433,14 +515,25 @@ int testForestAlternate(std::string forest_path,
     cv::Mat temp_mat(480, 640, CV_16UC1);
     std::vector<float> weights_vec(bins);
     int images_processed = 0;
+    bool realsense = false;
 
-    //Random random;
-    //std::vector<int> rand_ints = random.RandomVector(0,11000,num_images,false);
-
+    Random random;
+    std::vector<int> rand_ints(num_images);
+    if(test_image_prefix.compare("img")==0)
+    {
+        std::cout << "testing on training_realsense training set" << std::endl; 
+        realsense = true;
+        rand_ints = random.RandomVector(0,1200,num_images,false);
+    }
+    
     for(int i=0;i<num_images;i++)
     {
-        //int image_index = rand_ints[i];
-        int image_index = 10000+i;
+        int image_index;
+        if(realsense)
+            image_index = rand_ints[i];
+        else
+            image_index = 10000+i;
+
         cv::Mat reg_mat = cv::Mat::zeros(480, 640, CV_16UC1);
         img_full_path = img_path + std::to_string(image_index) + "ir.png";
         depth_full_path = depth_path + std::to_string(image_index) + "depth.png";
@@ -469,6 +562,195 @@ int testForestAlternate(std::string forest_path,
         for(int j=0;j<bins;j++)
         {
             std::vector<uint16_t> expert_output = Regressor<PixelSubtractionResponse>::ApplyMat(*experts[j], *test_data1);
+            for(int k=0;k<expert_output.size();k++)
+            {
+                sum_weighted_output[k] = sum_weighted_output[k] + uint16_t(expert_output[k] * weights_vec[j]);
+            }
+        }
+        
+        int output_index = 0;
+        for(int r=0;r<480;r++)
+        {
+            uchar* test_image_pix = test_image.ptr<uchar>(r);
+            uint16_t* reg_mat_pix = reg_mat.ptr<uint16_t>(r);
+            for(int c=0;c<640;c++)
+            {
+                if(test_image_pix[c] == 0)
+                {
+                    continue;
+                }
+                else
+                {
+                    // this might fail if we go out of bounds somehow.
+                    reg_mat_pix[c] = sum_weighted_output[output_index];
+                    output_index++;
+                }
+            }
+        }
+
+        IPUtils::threshold16(reg_mat, result_thresh, THRESHOLD_PARAM, 65535, 4);
+        IPUtils::threshold16(depth_image, depth_thresh, THRESHOLD_PARAM, 65535, 4);
+        err_nt = IPUtils::getError(depth_image, reg_mat);        
+        err_t = IPUtils::getError(depth_thresh, result_thresh); 
+        // result_thresh.convertTo(result_thresh, CV_16U, 54);
+        // depth_thresh.convertTo(depth_thresh, CV_16U, 54);
+        // cv::imshow("error_nthresh", err_nt);
+        // cv::imshow("error_thresh", err_t);
+        // cv::imshow("depth", depth_thresh);
+        // cv::imshow("result", result_thresh);
+        cv::waitKey(30);
+        sse_t = sse_t + err_t;
+        sse_nt = sse_nt + err_nt;
+        images_processed++;
+    }
+
+    float alpha = 1.0 / images_processed;
+    msse_t = sse_t * alpha;
+    msse_nt = sse_nt * alpha;
+    cv::Scalar mean_nt, mean_t;
+    cv::Scalar std_dev_nt, std_dev_t;
+    cv::meanStdDev(msse_t, mean_t, std_dev_t);
+    cv::meanStdDev(msse_nt, mean_nt, std_dev_nt);
+    std::cout << "Mean (not thresholded): " << std::to_string(mean_nt[0]) << std::endl;
+    std::cout << "Std dev (not thresholded): " << std::to_string(std_dev_nt[0]) << std::endl;
+    std::cout << "Mean (thresholded): " << std::to_string(mean_t[0]) << std::endl;
+    std::cout << "Std dev (thresholded): " << std::to_string(std_dev_t[0]) << std::endl;
+}
+
+int testForestAlternateRH(std::string forest_path,
+    std::string forest_prefix,
+    std::string test_image_path,
+    std::string test_image_prefix,
+    int num_images)
+{
+    if(!IPUtils::dirExists(forest_path))
+        throw std::runtime_error("Failed to find forest directory:" + forest_path);
+
+    if(!IPUtils::dirExists(test_image_path))
+        throw std::runtime_error("Failed to find test image directory:" + test_image_path);        
+
+    // check path ends in '/'
+    if(forest_path.back() != '/')
+        forest_path += "/";
+    if(test_image_path.back() != '/')
+        test_image_path += "/";
+
+    // Initialize classification forest path string and vector of expert forest class strings
+    std::string class_path = forest_path + forest_prefix + "_classifier.frst";
+    std::string e_path[] = {forest_path + forest_prefix + "_expert0.frst",
+                            forest_path + forest_prefix + "_expert1.frst",
+                            forest_path + forest_prefix + "_expert2.frst",
+                            forest_path + forest_prefix + "_expert3.frst",
+                            forest_path + forest_prefix + "_expert4.frst"};
+    std::vector<std::string> expert_path (e_path, e_path+5);
+
+     // Init a vector of pointers to forests... essentially a vector of expert regressors
+    std::vector<std::unique_ptr<ForestShared<RandomHyperplaneFeatureResponse, DiffEntropyAggregator> > > experts;
+    // Init a pointer to a classifier
+    std::unique_ptr<ForestShared<RandomHyperplaneFeatureResponse, HistogramAggregator> > classifier;
+    int bins = 5;
+
+    // Load the classifier and expert regressors.
+    try
+    {
+        std::cout << "Loading classifier" << std::endl;
+        // load classifier
+        std::unique_ptr<Forest<RandomHyperplaneFeatureResponse, HistogramAggregator> > c_forest =
+            Forest<RandomHyperplaneFeatureResponse, HistogramAggregator>::Deserialize(class_path);
+        // Create ForestShared from loaded forest
+        std::unique_ptr<ForestShared<RandomHyperplaneFeatureResponse, HistogramAggregator> > c_forest_shared =
+            ForestShared<RandomHyperplaneFeatureResponse, HistogramAggregator>::ForestSharedFromForest(*c_forest);
+        // Delete original forest. May roll these steps into one later if we don't need a regular forest application.
+        c_forest->~Forest();
+        c_forest.release();
+        classifier = move(c_forest_shared);
+        std::cout << "Classifier loaded with " << std::to_string(classifier->TreeCount()) << " trees" << std::endl;
+        for(int i=0;i<bins;i++)
+        {
+            std::cout << "Loading expert " << std::to_string(i) << std::endl;
+            std::unique_ptr<Forest<RandomHyperplaneFeatureResponse, DiffEntropyAggregator> > e_forest =
+                Forest<RandomHyperplaneFeatureResponse, DiffEntropyAggregator>::Deserialize(expert_path[i]);
+            // Create ForestShared from loaded forest
+            std::unique_ptr<ForestShared<RandomHyperplaneFeatureResponse, DiffEntropyAggregator> > e_forest_shared =
+                ForestShared<RandomHyperplaneFeatureResponse, DiffEntropyAggregator>::ForestSharedFromForest(*e_forest);
+            // Delete original forest. May roll these steps into one later if we don't need a regular forest application.
+            e_forest->~Forest();
+            e_forest.release();
+            std::cout << "Expert loaded with " << std::to_string(e_forest_shared->TreeCount()) << " trees" << std::endl;
+            experts.push_back(std::move(e_forest_shared));
+        }
+    }
+    catch(const std::runtime_error& e)
+    {
+        std::cerr << "Forest loading Failed" << std::endl;
+        std::cerr << e.what() << std::endl;
+    }
+    // TODO: change this prefix from img to test
+    std::string img_path = test_image_path+test_image_prefix;
+    std::string img_full_path;
+    std::string depth_path = test_image_path+test_image_prefix;
+    std::string depth_full_path;
+    cv::Mat sse_t = cv::Mat::zeros(480, 640, CV_32SC1);
+    cv::Mat err_t = cv::Mat::zeros(480, 640, CV_32SC1);
+    cv::Mat msse_t(480, 640, CV_32SC1);
+    cv::Mat sse_nt = cv::Mat::zeros(480, 640, CV_32SC1);
+    cv::Mat err_nt = cv::Mat::zeros(480, 640, CV_32SC1);
+    cv::Mat msse_nt(480, 640, CV_32SC1);
+    cv::Mat depth_image(480, 640, CV_16UC1);
+    cv::Mat test_image(480, 640, CV_8UC1);
+    cv::Mat bins_mat;
+    cv::Mat result_thresh(480, 640, CV_16UC1);
+    cv::Mat depth_thresh(480, 640, CV_16UC1);
+    cv::Mat temp_mat(480, 640, CV_16UC1);
+    std::vector<float> weights_vec(bins);
+    int images_processed = 0;
+    bool realsense = false;
+
+    Random random;
+    std::vector<int> rand_ints(num_images);
+    if(test_image_prefix.compare("img")==0)
+    {
+        std::cout << "testing on training_realsense training set" << std::endl; 
+        realsense = true;
+        rand_ints = random.RandomVector(0,1200,num_images,false);
+    }
+    
+    for(int i=0;i<num_images;i++)
+    {
+        int image_index;
+        if(realsense)
+            image_index = rand_ints[i];
+        else
+            image_index = 10000+i;
+
+        cv::Mat reg_mat = cv::Mat::zeros(480, 640, CV_16UC1);
+        img_full_path = img_path + std::to_string(image_index) + "ir.png";
+        depth_full_path = depth_path + std::to_string(image_index) + "depth.png";
+        
+        test_image = cv::imread(img_full_path, -1);
+        depth_image = cv::imread(depth_full_path, -1);
+
+        if((!depth_image.data)||(!test_image.data))
+        {
+            std::cerr << "Error loading images:\n\t" << img_full_path << "\n\t" << depth_full_path << std::endl;
+            continue;
+        }
+
+        // Pre process the test image (need to do this for the alternate training where we don't use zero inputs)
+        // TODO get some parameters into this
+        test_image = IPUtils::preProcess(test_image);
+
+        std::unique_ptr<DataPointCollection> test_data1 = DataPointCollection::LoadMat(test_image, cv::Size(640, 480), false, false);
+        bins_mat = Classifier<RandomHyperplaneFeatureResponse>::ApplyMat(*classifier, *test_data1);
+        // Get the weights for weighted sum from  classifiaction results. 
+        // Essentially represents the probability for any pixel in the image to be in 
+        // a certain bin.
+        
+        weights_vec = IPUtils::weightsFromBins(bins_mat, cv::Size(640,480), true);
+        std::vector<uint16_t> sum_weighted_output(test_data1->Count(), 0);
+        for(int j=0;j<bins;j++)
+        {
+            std::vector<uint16_t> expert_output = Regressor<RandomHyperplaneFeatureResponse>::ApplyMat(*experts[j], *test_data1);
             for(int k=0;k<expert_output.size();k++)
             {
                 sum_weighted_output[k] = sum_weighted_output[k] + uint16_t(expert_output[k] * weights_vec[j]);
@@ -750,13 +1032,17 @@ void testFunction()
 
 int growSomeForests(ProgramParameters& progParams)
 {
+    bool rh = (progParams.SplitFunctionType == SplitFunctionDescriptor::RandomHyperplane);
     
     if(progParams.ForestType == ForestDescriptor::Regression)
     {
         try
         {
             std::cout << "\nAttempting to grow regressor" << std::endl;
-            trainRegressionPar(progParams, -1);
+            if(!rh)
+                trainRegressionPar(progParams, -1);
+            else
+                trainRegressionRH(progParams, -1);
         }
         catch (const std::runtime_error& e)
         {
@@ -769,7 +1055,10 @@ int growSomeForests(ProgramParameters& progParams)
         try
         {
             std::cout << "\nAttempting to grow expert regressor " << std::to_string(progParams.ExpertClassNo) << std::endl;
-            trainRegressionPar(progParams, progParams.ExpertClassNo);
+            if(!rh)
+                trainRegressionPar(progParams, progParams.ExpertClassNo);
+            else
+                trainRegressionRH(progParams, progParams.ExpertClassNo);
         }
         catch (const std::runtime_error& e)
         {
@@ -785,7 +1074,10 @@ int growSomeForests(ProgramParameters& progParams)
             try
             {
                 std::cout << "\nAttempting to grow expert regressor " << std::to_string(i) << std::endl;
-                trainRegressionPar(progParams, i);
+                if(!rh)
+                    trainRegressionPar(progParams, i);
+                else
+                    trainRegressionRH(progParams, i);
             }
             catch (const std::runtime_error& e)
             {
@@ -799,7 +1091,10 @@ int growSomeForests(ProgramParameters& progParams)
         try
         {
             std::cout << "\nAttempting to grow classifier" << std::endl;
-            trainClassificationPar(progParams);
+            if(!rh)
+                trainClassificationPar(progParams);
+            else
+                trainClassificationRH(progParams);
             
         }
         catch (const std::runtime_error& e)
@@ -917,9 +1212,10 @@ ProgramParameters getParamsFromFile(std::string& params_path)
                                     "TRAIN_ON_ZERO_IR",
                                     "MAX_RANGE",
                                     "TH_VALUE",
-                                    "WEBCAM"};
+                                    "WEBCAM",
+                                    "IGNORE_CLOSE"};
 
-    int num_categories = 24;
+    int num_categories = 25;
     try
     {
         ifstream params_file(params_path);
@@ -1026,6 +1322,24 @@ int main(int argc, char *argv[])
             std::cout << "Test image prefix: " << test_image_prefix << std::endl;
             std::cout << "Images to use in testing: " << std::to_string(num_test_images) << std::endl;
             testForestAlternate(forest_path, 
+                forest_prefix, 
+                test_image_path, 
+                test_image_prefix, 
+                num_test_images);    
+        }
+        else if(frst_arg.compare("-tr")==0)
+        {
+            std::string forest_path = argv[2];
+            std::string forest_prefix = argv[3];
+            std::string test_image_path = argv[4];
+            std::string test_image_prefix = argv[5];
+            int num_test_images = std::stoi(std::string(argv[6]));
+            std::cout << "Forest path: " << forest_path << std::endl;
+            std::cout << "Forest prefix: " << forest_prefix << std::endl;
+            std::cout << "Test image path: " << test_image_path << std::endl;
+            std::cout << "Test image prefix: " << test_image_prefix << std::endl;
+            std::cout << "Images to use in testing: " << std::to_string(num_test_images) << std::endl;
+            testForestAlternateRH(forest_path, 
                 forest_prefix, 
                 test_image_path, 
                 test_image_prefix, 

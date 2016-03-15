@@ -44,7 +44,6 @@ namespace MicrosoftResearch {
             class RandomHyperplaneFeatureResponse
             {
             public:
-                std::vector<float> n;
                 std::vector<cv::Point> offset;
                 unsigned dimensions;
 
@@ -57,26 +56,16 @@ namespace MicrosoftResearch {
                     : dimensions(dimensions)
                 {
 
-                    n.resize(dimensions);
                     offset.resize(dimensions);
 
                     int ub = (int)((sqrt(dimensions) -1) / 2);
                     int lb = 0 - ub;
                     // Normal distributed numbers to gives an unbiased random unit vector.
                     for (unsigned int c = 0; c < dimensions; c++) {
-                        n[c] = randn(random);
+                        offset[c] = cv::Point(random.Next(lb,ub), random.Next(lb,ub));
                     }
 
-                    int i = 0;
-                    for (int r = lb; r <= ub; r++)
-                    {
-                        for (int c = lb; c <= ub; c++)
-                        {
-                            offset[i] = cv::Point(c, r);
-                            i++;
-                        }
-                    }
-
+                    
                 }
 
                 static RandomHyperplaneFeatureResponse CreateRandom(Random& random, unsigned int dimensions);

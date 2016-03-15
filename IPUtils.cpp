@@ -480,6 +480,36 @@ int IPUtils::getBestThreshold(cv::Mat ir_image, cv::Mat depth_image, int depth_m
 
 }
 
+int IPUtils::getTallestBin(cv::Mat& binned_mat, int num_bins, bool ignore_zero)
+{
+    int rows = binned_mat.size().height;
+    int cols = binned_mat.size().width;
+    std::vector<int> bins_accumulator(num_bins);
+
+    for(int r = 0 ;r<rows;r++)
+    {
+        uint8_t* bin_pix = binned_mat.ptr<uint8_t>(r);
+        for(int c=0;c<cols;c++)
+        {
+            bins_accumulator[bin_pix[c]]++;
+        }
+    }
+
+    int start = ignore_zero? 1 : 0;
+    int max = 0;
+    int tallest_bin = 0;
+    for(int i=start;i<num_bins;i++)
+    {
+        if(bins_accumulator[i]>=max)
+        {
+            max = bins_accumulator[i];
+            tallest_bin = i;
+        }
+    } 
+    return tallest_bin;
+
+}
+
 #ifdef __WIN32
 bool IPUtils::dirExists(const std::string& dirName_in)
 {

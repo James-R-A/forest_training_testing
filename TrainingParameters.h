@@ -84,6 +84,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
     int MR;
     int Threshold;
     bool Webcam;
+    bool Closeup;
 
     ProgramParameters()
     {
@@ -104,6 +105,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       MR = 1200;
       Threshold = 38;
       Webcam = false;
+      Closeup = true;
     }
 
     bool setParam(std::string parameter, std::string value)
@@ -293,6 +295,13 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
           Webcam = true;
         else
           Webcam = false;
+      }
+      else if(parameter.compare("IGNORE_CLOSE") == 0)
+      {
+        if(value.compare("YES")==0)
+          Closeup = false;
+        else
+          Closeup = true;
       }
       else
         return false;

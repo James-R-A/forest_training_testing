@@ -66,10 +66,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
                 binary_write(o, b.offset[i].x);
                 binary_write(o, b.offset[i].y);
             }
-            for (unsigned int i = 0; i < size; i++)
-            {
-                binary_write(o, b.n[i]);
-            }
+
         }
 
         template<>
@@ -79,16 +76,13 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
             binary_read(o, size);
             b.dimensions = size;
             b.offset.resize(size);
-            b.n.resize(size);
+            
             for (unsigned int i = 0; i < size; i++)
             {
                 binary_read(o, b.offset[i].x);
                 binary_read(o, b.offset[i].y);
             }
-            for (unsigned int i = 0; i < size; i++)
-            {
-                binary_read(o, b.n[i]);
-            }
+
         }
 
         template<>
@@ -148,10 +142,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
                 binary_write(o, b.offset[i].x);
                 binary_write(o, b.offset[i].y);
             }
-            for (unsigned int i = 0; i < size; i++)
-            {
-                binary_write(o, b.n[i]);
-            }
+
         }
 
         template<>
@@ -161,16 +152,13 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
             binary_read(o, size);
             b.dimensions = size;
             b.offset.resize(size);
-            b.n.resize(size);
+            
             for (unsigned int i = 0; i < size; i++)
             {
                 binary_read(o, b.offset[i].x);
                 binary_read(o, b.offset[i].y);
             }
-            for (unsigned int i = 0; i < size; i++)
-            {
-                binary_read(o, b.n[i]);
-            }
+
         }
 
         template<>
