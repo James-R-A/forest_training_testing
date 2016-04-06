@@ -414,7 +414,7 @@ cv::Mat IPUtils::getError(cv::Mat mat_a, cv::Mat mat_b)
         for(int c=0;c<cols;c++)
         {
             temp = abs(a_pix[c] - b_pix[c]);
-            ret_pix[c] = temp * temp;
+            ret_pix[c] = temp;
         }
     }
     return ret_mat;

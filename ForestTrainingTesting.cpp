@@ -20,6 +20,7 @@ using namespace MicrosoftResearch::Cambridge::Sherwood;
 #define DEF_REG_LEVELS 20
 #define DEF_CLASS_LEVELS 22
 #define THRESHOLD_PARAM 1200
+#define OUT_PATH "/home/james/workspace/forest_output_files/"
 
 #ifdef _WIN32
 const std::string FILE_PATH = "D:\\";
@@ -506,6 +507,8 @@ int testForestAlternate(std::string forest_path,
     cv::Mat msse_t(480, 640, CV_32SC1);
     cv::Mat sse_nt = cv::Mat::zeros(480, 640, CV_32SC1);
     cv::Mat err_nt = cv::Mat::zeros(480, 640, CV_32SC1);
+    std::vector<int32_t> gt_error(THRESHOLD_PARAM, 0);
+    std::vector<int32_t> gt_inc(THRESHOLD_PARAM, 0);
     cv::Mat msse_nt(480, 640, CV_32SC1);
     cv::Mat depth_image(480, 640, CV_16UC1);
     cv::Mat test_image(480, 640, CV_8UC1);
@@ -517,6 +520,20 @@ int testForestAlternate(std::string forest_path,
     int images_processed = 0;
     bool realsense = false;
 
+    int threshold_value = 36;
+    size_t t_pos = forest_prefix.find("T");
+    if(t_pos != std::string::npos)
+    {
+        threshold_value = std::stoi(forest_prefix.substr(t_pos+1, t_pos+2));
+
+    }
+    std::cout << "Threshold value used " << std::to_string(threshold_value) << std::endl;
+
+    std::string ir_image_suffix = "ir.png";
+
+    if(forest_prefix.find("cam") != std::string::npos)
+        ir_image_suffix = "cam.png";
+
     Random random;
     std::vector<int> rand_ints(num_images);
     if(test_image_prefix.compare("img")==0)
@@ -525,7 +542,13 @@ int testForestAlternate(std::string forest_path,
         realsense = true;
         rand_ints = random.RandomVector(0,1200,num_images,false);
     }
-    
+    else
+    {
+        std::cout << "testing on training_images_2 test set" << std::endl; 
+        realsense = true;
+        rand_ints = random.RandomVector(10000,11000,num_images,false);
+    }
+
     for(int i=0;i<num_images;i++)
     {
         int image_index;
@@ -535,7 +558,7 @@ int testForestAlternate(std::string forest_path,
             image_index = 10000+i;
 
         cv::Mat reg_mat = cv::Mat::zeros(480, 640, CV_16UC1);
-        img_full_path = img_path + std::to_string(image_index) + "ir.png";
+        img_full_path = img_path + std::to_string(image_index) + ir_image_suffix;
         depth_full_path = depth_path + std::to_string(image_index) + "depth.png";
         
         test_image = cv::imread(img_full_path, -1);
@@ -549,7 +572,7 @@ int testForestAlternate(std::string forest_path,
 
         // Pre process the test image (need to do this for the alternate training where we don't use zero inputs)
         // TODO get some parameters into this
-        test_image = IPUtils::preProcess(test_image);
+        test_image = IPUtils::preProcess(test_image, threshold_value);
 
         std::unique_ptr<DataPointCollection> test_data1 = DataPointCollection::LoadMat(test_image, cv::Size(640, 480), false, false);
         bins_mat = Classifier<PixelSubtractionResponse>::ApplyMat(*classifier, *test_data1);
@@ -598,7 +621,19 @@ int testForestAlternate(std::string forest_path,
         // cv::imshow("error_thresh", err_t);
         // cv::imshow("depth", depth_thresh);
         // cv::imshow("result", result_thresh);
-        cv::waitKey(30);
+        int rows = depth_thresh.size().height;
+        int cols = depth_thresh.size().width;
+
+        for(int r=0;r<rows;r++)
+        {
+            uint16_t* depth_pix = depth_thresh.ptr<uint16_t>(r);
+            int32_t* pixel_error = err_t.ptr<int32_t>(r);
+            for(int c=0;c<cols;c++)
+            {
+                gt_error[depth_pix[c]] += pixel_error[c];
+                gt_inc[depth_pix[c]]++;
+            }
+        }
         sse_t = sse_t + err_t;
         sse_nt = sse_nt + err_nt;
         images_processed++;
@@ -615,6 +650,28 @@ int testForestAlternate(std::string forest_path,
     std::cout << "Std dev (not thresholded): " << std::to_string(std_dev_nt[0]) << std::endl;
     std::cout << "Mean (thresholded): " << std::to_string(mean_t[0]) << std::endl;
     std::cout << "Std dev (thresholded): " << std::to_string(std_dev_t[0]) << std::endl;
+
+    ofstream out_file;
+    out_file.open(OUT_PATH + forest_prefix + test_image_prefix);
+    int temp;
+    if(out_file.is_open())
+    {
+        for(int i=0;i<gt_error.size();i++)
+        {
+            if(gt_inc[i] != 0)
+                temp = gt_inc[i];
+            else
+                temp = 1;
+
+            out_file << to_string(round((float(gt_error[i])/temp))) << ";";
+        }
+        out_file.close();
+    }
+    else
+    {
+        std::cout << "Unable to open file" << std::endl;
+    }
+
 }
 
 int testForestAlternateRH(std::string forest_path,
@@ -695,6 +752,8 @@ int testForestAlternateRH(std::string forest_path,
     cv::Mat msse_t(480, 640, CV_32SC1);
     cv::Mat sse_nt = cv::Mat::zeros(480, 640, CV_32SC1);
     cv::Mat err_nt = cv::Mat::zeros(480, 640, CV_32SC1);
+    std::vector<int32_t> gt_error(THRESHOLD_PARAM, 0);
+    std::vector<int32_t> gt_inc(THRESHOLD_PARAM, 0);
     cv::Mat msse_nt(480, 640, CV_32SC1);
     cv::Mat depth_image(480, 640, CV_16UC1);
     cv::Mat test_image(480, 640, CV_8UC1);
@@ -706,6 +765,16 @@ int testForestAlternateRH(std::string forest_path,
     int images_processed = 0;
     bool realsense = false;
 
+    int threshold_value = 36;
+    size_t t_pos = forest_prefix.find("T");
+    if(t_pos != std::string::npos)
+    {
+        threshold_value = std::stoi(forest_prefix.substr(t_pos+1, t_pos+2));
+
+    }
+    std::cout << "Threshold value used " << std::to_string(threshold_value) << std::endl;
+
+
     Random random;
     std::vector<int> rand_ints(num_images);
     if(test_image_prefix.compare("img")==0)
@@ -714,7 +783,17 @@ int testForestAlternateRH(std::string forest_path,
         realsense = true;
         rand_ints = random.RandomVector(0,1200,num_images,false);
     }
+    else
+    {
+        std::cout << "testing on training_images_2 test set" << std::endl; 
+        realsense = true;
+        rand_ints = random.RandomVector(10000,11000,num_images,false);
+    }
     
+    std::string ir_image_suffix = "ir.png";
+    if(forest_prefix.find("cam") != std::string::npos)
+        ir_image_suffix = "cam.png";
+
     for(int i=0;i<num_images;i++)
     {
         int image_index;
@@ -724,7 +803,7 @@ int testForestAlternateRH(std::string forest_path,
             image_index = 10000+i;
 
         cv::Mat reg_mat = cv::Mat::zeros(480, 640, CV_16UC1);
-        img_full_path = img_path + std::to_string(image_index) + "ir.png";
+        img_full_path = img_path + std::to_string(image_index) + ir_image_suffix;
         depth_full_path = depth_path + std::to_string(image_index) + "depth.png";
         
         test_image = cv::imread(img_full_path, -1);
@@ -738,7 +817,7 @@ int testForestAlternateRH(std::string forest_path,
 
         // Pre process the test image (need to do this for the alternate training where we don't use zero inputs)
         // TODO get some parameters into this
-        test_image = IPUtils::preProcess(test_image);
+        test_image = IPUtils::preProcess(test_image, threshold_value);
 
         std::unique_ptr<DataPointCollection> test_data1 = DataPointCollection::LoadMat(test_image, cv::Size(640, 480), false, false);
         bins_mat = Classifier<RandomHyperplaneFeatureResponse>::ApplyMat(*classifier, *test_data1);
@@ -787,7 +866,19 @@ int testForestAlternateRH(std::string forest_path,
         // cv::imshow("error_thresh", err_t);
         // cv::imshow("depth", depth_thresh);
         // cv::imshow("result", result_thresh);
-        cv::waitKey(30);
+        int rows = depth_thresh.size().height;
+        int cols = depth_thresh.size().width;
+
+        for(int r=0;r<rows;r++)
+        {
+            uint16_t* depth_pix = depth_thresh.ptr<uint16_t>(r);
+            int32_t* pixel_error = err_t.ptr<int32_t>(r);
+            for(int c=0;c<cols;c++)
+            {
+                gt_error[depth_pix[c]] += pixel_error[c];
+                gt_inc[depth_pix[c]]++;
+            }
+        }
         sse_t = sse_t + err_t;
         sse_nt = sse_nt + err_nt;
         images_processed++;
@@ -804,6 +895,27 @@ int testForestAlternateRH(std::string forest_path,
     std::cout << "Std dev (not thresholded): " << std::to_string(std_dev_nt[0]) << std::endl;
     std::cout << "Mean (thresholded): " << std::to_string(mean_t[0]) << std::endl;
     std::cout << "Std dev (thresholded): " << std::to_string(std_dev_t[0]) << std::endl;
+
+    ofstream out_file;
+    out_file.open(OUT_PATH + forest_prefix + test_image_prefix);
+    int temp;
+    if(out_file.is_open())
+    {
+        for(int i=0;i<gt_error.size();i++)
+        {
+            if(gt_inc[i] != 0)
+                temp = gt_inc[i];
+            else
+                temp = 1;
+
+            out_file << to_string(round((float(gt_error[i])/temp))) << ";";
+        }
+        out_file.close();
+    }
+    else
+    {
+        std::cout << "Unable to open file" << std::endl;
+    }
 }
 
 int testForest(std::string forest_path,
@@ -883,6 +995,8 @@ int testForest(std::string forest_path,
     cv::Mat msse_t(480, 640, CV_32SC1);
     cv::Mat sse_nt = cv::Mat::zeros(480, 640, CV_32SC1);
     cv::Mat err_nt = cv::Mat::zeros(480, 640, CV_32SC1);
+    std::vector<int32_t> gt_error(THRESHOLD_PARAM, 0);
+    std::vector<int32_t> gt_inc(THRESHOLD_PARAM, 0);
     cv::Mat msse_nt(480, 640, CV_32SC1);
     cv::Mat depth_image(480, 640, CV_16UC1);
     cv::Mat test_image(480, 640, CV_8UC1);
@@ -892,15 +1006,37 @@ int testForest(std::string forest_path,
     cv::Mat depth_thresh(480, 640, CV_16UC1);
     std::vector<float> weights_vec(bins-1);
     int images_processed = 0;
+    bool realsense = false;
 
-    //Random random;
-    //std::vector<int> rand_ints = random.RandomVector(0,11000,num_images,false);
+    Random random;
+    std::vector<int> rand_ints(num_images);
+    if(test_image_prefix.compare("img")==0)
+    {
+        std::cout << "testing on training_realsense training set" << std::endl; 
+        realsense = true;
+        rand_ints = random.RandomVector(0,1200,num_images,false);
+    }
+    else
+    {
+        std::cout << "testing on training_images_2 test set" << std::endl; 
+        realsense = true;
+        rand_ints = random.RandomVector(10000,11000,num_images,false);
+    }
+
+    
+    std::string ir_image_suffix = "ir.png";
+    if(forest_prefix.find("cam") != std::string::npos)
+        ir_image_suffix = "cam.png";
 
     for(int i=0;i<num_images;i++)
     {
-        //int image_index = rand_ints[i];
-        int image_index = 10000+i;
-        img_full_path = img_path + std::to_string(image_index) + "ir.png";
+        int image_index;
+        if(realsense)
+            image_index = rand_ints[i];
+        else
+            image_index = 10000+i;
+
+        img_full_path = img_path + std::to_string(image_index) + ir_image_suffix;
         depth_full_path = depth_path + std::to_string(image_index) + "depth.png";
         
         test_image = cv::imread(img_full_path, -1);
@@ -944,6 +1080,20 @@ int testForest(std::string forest_path,
         // cv::imshow("depth", depth_thresh);
         // cv::imshow("result", result_thresh);
         // cv::waitKey(30);
+        int rows = depth_thresh.size().height;
+        int cols = depth_thresh.size().width;
+
+        for(int r=0;r<rows;r++)
+        {
+            uint16_t* depth_pix = depth_thresh.ptr<uint16_t>(r);
+            int32_t* pixel_error = err_t.ptr<int32_t>(r);
+            for(int c=0;c<cols;c++)
+            {
+                gt_error[depth_pix[c]] += pixel_error[c];
+                gt_inc[depth_pix[c]]++;
+            }
+        }
+
         sse_t = sse_t + err_t;
         sse_nt = sse_nt + err_nt;
         images_processed++;
@@ -960,6 +1110,29 @@ int testForest(std::string forest_path,
     std::cout << "Std dev (not thresholded): " << std::to_string(std_dev_nt[0]) << std::endl;
     std::cout << "Mean (thresholded): " << std::to_string(mean_t[0]) << std::endl;
     std::cout << "Std dev (thresholded): " << std::to_string(std_dev_t[0]) << std::endl;
+
+    ofstream out_file;
+    out_file.open(OUT_PATH + forest_prefix + test_image_prefix);
+    int temp;
+    if(out_file.is_open())
+    {
+        for(int i=0;i<gt_error.size();i++)
+        {
+            if(gt_inc[i] != 0)
+                temp = gt_inc[i];
+            else
+                temp = 1;
+
+            out_file << to_string(round((float(gt_error[i])/temp))) << ";";
+        }
+        out_file.close();
+    }
+    else
+    {
+        std::cout << "Unable to open file" << std::endl;
+    }
+
+    
 }
 
 void testFunction()
@@ -970,9 +1143,9 @@ void testFunction()
     std::vector<int> error_values(size);
     for(int i=0;i<size;i++)
     {
-        int random_int = random.Next(0,10000);
-        std::string file_name = "/media/james/data_wd/training_images_2/pair" + to_string(random_int);
-        cv::Mat ir_image = cv::imread(file_name + "cam.png", -1);
+        int random_int = random.Next(0,1500);
+        std::string file_name = "/media/james/data_wd/training_realsense_2/scene" + to_string(random_int);
+        cv::Mat ir_image = cv::imread(file_name + "ir.png", -1);
         cv::Mat depth_image = cv::imread(file_name + "depth.png", -1);
 
         if(ir_image.data && depth_image.data)
@@ -1010,7 +1183,7 @@ void testFunction()
     }
 
     ofstream histogram_file;
-    histogram_file.open("/home/james/workspace/histogram_file.csv");
+    histogram_file.open("/home/james/workspace/scene_histogram_file.csv");
     if(histogram_file.is_open())
     {
         for(int i=0;i<255;i++)
