@@ -765,7 +765,7 @@ int testForestAlternateRH(std::string forest_path,
     int images_processed = 0;
     bool realsense = false;
 
-    int threshold_value = 36;
+    int threshold_value = 38;
     size_t t_pos = forest_prefix.find("T");
     if(t_pos != std::string::npos)
     {
@@ -1143,8 +1143,8 @@ void testFunction()
     std::vector<int> error_values(size);
     for(int i=0;i<size;i++)
     {
-        int random_int = random.Next(0,1500);
-        std::string file_name = "/media/james/data_wd/training_realsense_2/scene" + to_string(random_int);
+        int random_int = random.Next(10000,11000);
+        std::string file_name = "/media/james/data_wd/training_images_2/test" + to_string(random_int);
         cv::Mat ir_image = cv::imread(file_name + "ir.png", -1);
         cv::Mat depth_image = cv::imread(file_name + "depth.png", -1);
 
@@ -1183,7 +1183,7 @@ void testFunction()
     }
 
     ofstream histogram_file;
-    histogram_file.open("/home/james/workspace/scene_histogram_file.csv");
+    histogram_file.open("/home/james/workspace/big_realsense_histogram_file.csv");
     if(histogram_file.is_open())
     {
         for(int i=0;i<255;i++)
