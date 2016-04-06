@@ -30,7 +30,7 @@ NO
 SPLIT_FUNCTION:
 PIXEL_DIFFERENCE
 FOREST_OUTPUT:
-../forest_files/tester
+../forest_files/scene_1200_T39
 INPUT_PREFIX:
 scene
 IMG_WIDTH:
