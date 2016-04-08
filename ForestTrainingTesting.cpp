@@ -1355,27 +1355,28 @@ int testColourisation(std::string file_path = "/media/james/data_wd/training_rea
 
     std::vector<uint8_t> h_ints = IPUtils::generateGradientValues(0,255, 120, 0, true);
 
-    cv::Mat sample(256, 200,CV_8UC3, cv::Scalar(0,255,255));
-    cv::Mat sample_bgr;
-    for(int i=0;i<256;i++)
-    {
-        uint8_t* sample_pixel = sample.ptr<uint8_t>(i);
-        for(int c=0;c<200;c++)
-        {
-            sample_pixel[c*3] = h_ints[i];
-        }
-    }
-    cv::cvtColor(sample, sample_bgr, CV_HSV2BGR);
-    cv::imshow("sample", sample_bgr);
+    // cv::Mat sample(256, 200,CV_8UC3, cv::Scalar(0,255,255));
+    // cv::Mat sample_bgr;
+    // for(int i=0;i<256;i++)
+    // {
+    //     uint8_t* sample_pixel = sample.ptr<uint8_t>(i);
+    //     for(int c=0;c<200;c++)
+    //     {
+    //         sample_pixel[c*3] = h_ints[i];
+    //     }
+    // }
+    // cv::cvtColor(sample, sample_bgr, CV_HSV2BGR);
+    // cv::imshow("sample", sample_bgr);
 
     cv::Mat depth_raw(480,640,CV_16UC1);
     cv::Mat depth_th(480,640,CV_16UC1);
+    cv::Mat depth_norm(480,640,CV_16UC1);
     cv::Mat depth_gs(480,640,CV_8UC1);
     cv::Mat depth_bgr;
     int rows = 480;
     int cols = 640;
 
-    for(int i=1200 ; i>0 ; i--)
+    for(int i=0 ; i<1200 ; i++)
     {
         cv::Mat depth_hsv(480, 640, CV_8UC3, cv::Scalar(0,255,255));
         std::string full_path = image_path + depth_prefix + std::to_string(i) + "depth.png";
@@ -1383,15 +1384,19 @@ int testColourisation(std::string file_path = "/media/james/data_wd/training_rea
         depth_raw = cv::imread(full_path, -1);
         
         IPUtils::threshold16(depth_raw, depth_th, 1200, 65535, 4);
-        depth_th.convertTo(depth_th, CV_16U, 0.2125);
-        IPUtils::Colorize16(depth_th, depth_bgr, false);
-        depth_th.convertTo(depth_gs, CV_8U);
-        
-        IPUtils::AddKey(depth_th, depth_bgr);
+        cv::normalize(depth_th, depth_norm, 0, 255, cv::NORM_MINMAX, CV_16UC1);
+        //depth_th.convertTo(depth_norm, CV_16U, 0.2125);
+        depth_norm.convertTo(depth_gs, CV_8U);
+        IPUtils::Colourize(depth_norm, depth_bgr, false);
 
-        cv::imshow("grayscale", depth_gs);
+        IPUtils::AddKey(depth_th, depth_bgr);
+        cv::Mat test(480, 640, CV_8UC3, cv::Scalar(255,255,255));
+        IPUtils::AddKey(depth_th, test);
+        cv::imshow("key_only", test);
+
+        cv::imshow("grayscale", depth_gs); 
         cv::imshow("colour", depth_bgr);
-        cv::waitKey(30);
+        cv::waitKey(0);
     }
 
     cv::startWindowThread();

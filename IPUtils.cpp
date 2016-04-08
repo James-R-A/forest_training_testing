@@ -574,14 +574,8 @@ std::vector<uint8_t> IPUtils::generateGradientValues(int min, int max, int min_h
 
 }
 
-int IPUtils::Colorize16(cv::Mat& in, cv::Mat& out, bool zero_black)
+int IPUtils::Colourize(cv::Mat& in, cv::Mat& out, bool zero_black)
 {
-
-    int depth_type = in.type();
-    uchar input_depth = depth_type & CV_MAT_DEPTH_MASK;
-    uchar chans = 1 + (depth_type >> CV_CN_SHIFT);
-    if((chans != 1) || (input_depth != CV_16U))
-        throw std::runtime_error("invalid input format");
 
     std::vector<uint8_t> h_ints = generateGradientValues(0,255);
 
@@ -612,14 +606,8 @@ int IPUtils::Colorize16(cv::Mat& in, cv::Mat& out, bool zero_black)
     return 0;
 }
 
-int IPUtils::Colorize16(cv::Mat& in, cv::Mat& out, int min_h, int max_h, bool inv, bool zero_black)
+int IPUtils::Colourize(cv::Mat& in, cv::Mat& out, int min_h, int max_h, bool inv, bool zero_black)
 {
-
-    int depth_type = in.type();
-    uchar input_depth = depth_type & CV_MAT_DEPTH_MASK;
-    uchar chans = 1 + (depth_type >> CV_CN_SHIFT);
-    if((chans != 1) || (input_depth != CV_16U))
-        throw std::runtime_error("invalid input format");
 
     std::vector<uint8_t> h_ints = generateGradientValues(0,255, min_h, max_h, inv);
 
@@ -675,11 +663,40 @@ int IPUtils::AddKey(cv::Mat& original, cv::Mat& colour, int min_h, int max_h, bo
     cv::rectangle(key_bgr, cv::Point(0,0), cv::Point(49,255), cv::Scalar(0,0,0), 2);
     cv::Mat region_of_interest(colour, cv::Rect(25,50,50,256));
     key_bgr.copyTo(region_of_interest);
-    cv::putText(colour, "max", cv::Point(25,46), 3, 1, cv::Scalar(0,0,0), 1, 8);
-    cv::putText(colour, "min", cv::Point(25,330), 3, 1, cv::Scalar(0,0,0), 1, 8);
-    cv::imshow("image",colour);
-    cv::waitKey(0);
+    cv::putText(colour, std::to_string(max), cv::Point(25,46), 3, 1, cv::Scalar(0,0,0), 1, 8);
+    cv::putText(colour, std::to_string(min), cv::Point(25,330), 3, 1, cv::Scalar(0,0,0), 1, 8);
+    
+    return 0;
+}
 
+int IPUtils::GetKey(cv::Mat& original, cv::Mat& key_out, int min_h, int max_h, bool inv)
+{
+    int min, max;
+    double min_d, max_d;
+
+    cv::minMaxLoc(original, &min_d, &max_d);
+    min = int(min_d);
+    max = int(max_d);
+
+    std::vector<uint8_t> h_ints = generateGradientValues(0,255,min_h, max_h, inv);
+
+    cv::Mat key(256, 50,CV_8UC3, cv::Scalar(0,255,255));
+    cv::Mat key_bgr;
+    for(int i=0;i<256;i++)
+    {
+        uint8_t* key_pixel = key.ptr<uint8_t>(i);
+        for(int c=0;c<50;c++)
+        {
+            key_pixel[c*3] = h_ints[255 - i];
+        }
+    }
+    cv::cvtColor(key, key_bgr, CV_HSV2BGR);
+    cv::rectangle(key_bgr, cv::Point(0,0), cv::Point(49,255), cv::Scalar(0,0,0), 2);
+    cv::Mat region_of_interest(key_out, cv::Rect(25,50,50,256));
+    key_bgr.copyTo(region_of_interest);
+    cv::putText(key_out, std::to_string(max), cv::Point(25,46), 3, 1, cv::Scalar(0,0,0), 1, 8);
+    cv::putText(key_out, std::to_string(min), cv::Point(25,330), 3, 1, cv::Scalar(0,0,0), 1, 8);
+    
     return 0;
 }
 
