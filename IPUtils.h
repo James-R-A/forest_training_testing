@@ -71,6 +71,13 @@ public:
 
     static int getTallestBin(cv::Mat& binned_image, int num_bins = 5, bool ignore_zero = true);
 
+    static std::vector<uint8_t> generateGradientValues(int min, int max, int min_h = 120, int max_h = 0, bool inv = true);
+
+    static int Colorize16(cv::Mat& in, cv::Mat& out, bool zero_black = true);
+    static int Colorize16(cv::Mat& in, cv::Mat& out, int min_h, int max_h, bool inv, bool zero_black = true);
+
+    static int AddKey(cv::Mat& original, cv::Mat& colour, int min_h=120, int max_h=0, bool inv=true);
+
     IPUtils();
     ~IPUtils();
 };

@@ -510,6 +510,179 @@ int IPUtils::getTallestBin(cv::Mat& binned_mat, int num_bins, bool ignore_zero)
 
 }
 
+std::vector<uint8_t> IPUtils::generateGradientValues(int min, int max, int min_h, int max_h, bool inv)
+{
+    int vec_size = (max-min)+1;
+    std::vector<uint8_t> h_ints(vec_size);
+    std::vector<float> h_values(vec_size);
+    float increment;
+
+    if(inv)
+    {
+        if(min_h <= max_h)
+        {
+            increment = float(180 - (max_h-min_h))/255;
+        }
+        else
+        {
+            increment = float(min_h-max_h)/255;
+        }
+        
+        h_values[0] = min_h;
+        for(int i=1;i<vec_size;i++)
+        {
+            h_values[i] = h_values[i-1] - increment;
+            if(h_values[i] >= 179.5)
+                h_values[i] -= 180;
+            if(h_values[i] < -0.5)
+                h_values[i] += 180;
+        }
+
+        for(int i=0;i<vec_size;i++)
+        {
+            h_ints[i] = uint8_t(round(h_values[i]));
+        }
+    }
+    else
+    {
+        if(min_h >= max_h)
+        {
+            increment = float(180 - (min_h-max_h))/255;
+        }
+        else
+        {
+            increment = float(max_h-min_h)/255;
+        }
+        
+        h_values[0] = min_h;
+        for(int i=1;i<vec_size;i++)
+        {
+            h_values[i] = h_values[i-1] + increment;
+            if(h_values[i] >= 179.5)
+                h_values[i] -= 180;
+            if(h_values[i] < -0.5)
+                h_values[i] += 180;
+        }
+
+        for(int i=0;i<vec_size;i++)
+        {
+            h_ints[i] = uint8_t(round(h_values[i]));
+        }
+    }
+
+    return h_ints;
+
+}
+
+int IPUtils::Colorize16(cv::Mat& in, cv::Mat& out, bool zero_black)
+{
+
+    int depth_type = in.type();
+    uchar input_depth = depth_type & CV_MAT_DEPTH_MASK;
+    uchar chans = 1 + (depth_type >> CV_CN_SHIFT);
+    if((chans != 1) || (input_depth != CV_16U))
+        throw std::runtime_error("invalid input format");
+
+    std::vector<uint8_t> h_ints = generateGradientValues(0,255);
+
+    int rows = in.size().height;
+    int cols = in.size().width;
+    cv::Mat in_gs(rows,cols,CV_8UC1);
+    cv::Mat out_hsv(rows, cols, CV_8UC3, cv::Scalar(0,255,255));
+    
+    in.convertTo(in_gs, CV_8U);
+
+    for(int r=0;r<rows;r++)
+    {
+        uint8_t* hue_pixel = out_hsv.ptr<uint8_t>(r);
+        uint8_t* gs_pixel = in_gs.ptr<uint8_t>(r);
+        for(int c=0;c<cols;c++)
+        {
+            if(gs_pixel[c] != 0 || !zero_black)
+            {
+                hue_pixel[c*3] = h_ints[gs_pixel[c]];
+            }
+            else
+            {
+                hue_pixel[(c*3) + 2] = 0;
+            }
+        }
+    }
+    cv::cvtColor(out_hsv, out, CV_HSV2BGR);
+    return 0;
+}
+
+int IPUtils::Colorize16(cv::Mat& in, cv::Mat& out, int min_h, int max_h, bool inv, bool zero_black)
+{
+
+    int depth_type = in.type();
+    uchar input_depth = depth_type & CV_MAT_DEPTH_MASK;
+    uchar chans = 1 + (depth_type >> CV_CN_SHIFT);
+    if((chans != 1) || (input_depth != CV_16U))
+        throw std::runtime_error("invalid input format");
+
+    std::vector<uint8_t> h_ints = generateGradientValues(0,255, min_h, max_h, inv);
+
+    int rows = in.size().height;
+    int cols = in.size().width;
+    cv::Mat in_gs(rows,cols,CV_8UC1);
+    cv::Mat out_hsv(rows, cols, CV_8UC3, cv::Scalar(0,255,255));
+    
+    in.convertTo(in_gs, CV_8U);
+
+    for(int r=0;r<rows;r++)
+    {
+        uint8_t* hue_pixel = out_hsv.ptr<uint8_t>(r);
+        uint8_t* gs_pixel = in_gs.ptr<uint8_t>(r);
+        for(int c=0;c<cols;c++)
+        {
+            if(gs_pixel[c] != 0 || !zero_black)
+            {
+                hue_pixel[c*3] = h_ints[gs_pixel[c]];
+            }
+            else
+            {
+                hue_pixel[(c*3) + 2] = 0;
+            }
+        }
+    }
+    cv::cvtColor(out_hsv, out, CV_HSV2BGR);
+    return 0;
+}
+
+int IPUtils::AddKey(cv::Mat& original, cv::Mat& colour, int min_h, int max_h, bool inv)
+{
+    int min, max;
+    double min_d, max_d;
+
+    cv::minMaxLoc(original, &min_d, &max_d);
+    min = int(min_d);
+    max = int(max_d);
+
+    std::vector<uint8_t> h_ints = generateGradientValues(0,255,min_h, max_h, inv);
+
+    cv::Mat key(256, 50,CV_8UC3, cv::Scalar(0,255,255));
+    cv::Mat key_bgr;
+    for(int i=0;i<256;i++)
+    {
+        uint8_t* key_pixel = key.ptr<uint8_t>(i);
+        for(int c=0;c<50;c++)
+        {
+            key_pixel[c*3] = h_ints[255 - i];
+        }
+    }
+    cv::cvtColor(key, key_bgr, CV_HSV2BGR);
+    cv::rectangle(key_bgr, cv::Point(0,0), cv::Point(49,255), cv::Scalar(0,0,0), 2);
+    cv::Mat region_of_interest(colour, cv::Rect(25,50,50,256));
+    key_bgr.copyTo(region_of_interest);
+    cv::putText(colour, "max", cv::Point(25,46), 3, 1, cv::Scalar(0,0,0), 1, 8);
+    cv::putText(colour, "min", cv::Point(25,330), 3, 1, cv::Scalar(0,0,0), 1, 8);
+    cv::imshow("image",colour);
+    cv::waitKey(0);
+
+    return 0;
+}
+
 #ifdef __WIN32
 bool IPUtils::dirExists(const std::string& dirName_in)
 {

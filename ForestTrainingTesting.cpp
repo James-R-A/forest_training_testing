@@ -20,7 +20,7 @@ using namespace MicrosoftResearch::Cambridge::Sherwood;
 #define DEF_REG_LEVELS 20
 #define DEF_CLASS_LEVELS 22
 #define THRESHOLD_PARAM 1200
-#define OUT_PATH "/home/james/workspace/forest_output_files/"
+#define OUT_PATH "/home/james/workspace/forest_output_files/test/"
 
 #ifdef _WIN32
 const std::string FILE_PATH = "D:\\";
@@ -291,7 +291,7 @@ int classifyOnline(std::string dir_path)
         std::unique_ptr<DataPointCollection> test_data1 = DataPointCollection::LoadMat(test_image, cv::Size(640, 480));
         bins_mat = Classifier<PixelSubtractionResponse>::ApplyMat(*forest_shared, *test_data1);
         std::vector<uchar> bins_vec = IPUtils::vectorFromBins(bins_mat, cv::Size(640, 480));
-        cv::Mat result_mat1 = cv::Mat(480, 640, CV_8UC1, (int8_t*)bins_vec.data());
+        cv::Mat result_mat1 = cv::Mat(480, 640, CV_8UC1, (uint8_t*)bins_vec.data());
         result_mat1.convertTo(result_norm1, CV_8U, 63);
         cv::imshow("output", result_norm1);
         int64 process_time = (((cv::getTickCount() - start_time) / cv::getTickFrequency()) * 1000);
@@ -542,13 +542,21 @@ int testForestAlternate(std::string forest_path,
         realsense = true;
         rand_ints = random.RandomVector(0,1200,num_images,false);
     }
-    else
+    else if(test_image_prefix.compare("test")==0)
     {
         std::cout << "testing on training_images_2 test set" << std::endl; 
         realsense = true;
         rand_ints = random.RandomVector(10000,11000,num_images,false);
     }
+    else
+    {
+        std::cout << "testing on training_realsense_2 test set" << std::endl; 
+        realsense = true;
+        rand_ints = random.RandomVector(1200,1500,num_images,false);   
+    }
 
+    int64 start_time;
+    int64 process_time = 0;
     for(int i=0;i<num_images;i++)
     {
         int image_index;
@@ -557,10 +565,13 @@ int testForestAlternate(std::string forest_path,
         else
             image_index = 10000+i;
 
+        
         cv::Mat reg_mat = cv::Mat::zeros(480, 640, CV_16UC1);
         img_full_path = img_path + std::to_string(image_index) + ir_image_suffix;
         depth_full_path = depth_path + std::to_string(image_index) + "depth.png";
         
+        start_time = cv::getTickCount();
+
         test_image = cv::imread(img_full_path, -1);
         depth_image = cv::imread(depth_full_path, -1);
 
@@ -610,6 +621,7 @@ int testForestAlternate(std::string forest_path,
                 }
             }
         }
+        process_time += (((cv::getTickCount() - start_time) / cv::getTickFrequency()) * 1000);
 
         IPUtils::threshold16(reg_mat, result_thresh, THRESHOLD_PARAM, 65535, 4);
         IPUtils::threshold16(depth_image, depth_thresh, THRESHOLD_PARAM, 65535, 4);
@@ -650,6 +662,10 @@ int testForestAlternate(std::string forest_path,
     std::cout << "Std dev (not thresholded): " << std::to_string(std_dev_nt[0]) << std::endl;
     std::cout << "Mean (thresholded): " << std::to_string(mean_t[0]) << std::endl;
     std::cout << "Std dev (thresholded): " << std::to_string(std_dev_t[0]) << std::endl;
+
+    float avg_process_time = alpha * process_time;
+    std::cout << "\nAverage per-frame process time: " << std::to_string(avg_process_time) << " ms" << std::endl;
+    std::cout << "\nAverage framerate: " << std::to_string(1000/avg_process_time) << " Hz" << std::endl;
 
     ofstream out_file;
     out_file.open(OUT_PATH + forest_prefix + test_image_prefix);
@@ -783,16 +799,25 @@ int testForestAlternateRH(std::string forest_path,
         realsense = true;
         rand_ints = random.RandomVector(0,1200,num_images,false);
     }
-    else
+    else if(test_image_prefix.compare("test")==0)
     {
         std::cout << "testing on training_images_2 test set" << std::endl; 
         realsense = true;
         rand_ints = random.RandomVector(10000,11000,num_images,false);
     }
+    else
+    {
+        std::cout << "testing on training_realsense_2 test set" << std::endl; 
+        realsense = true;
+        rand_ints = random.RandomVector(1200,1500,num_images,false);   
+    }
     
     std::string ir_image_suffix = "ir.png";
     if(forest_prefix.find("cam") != std::string::npos)
         ir_image_suffix = "cam.png";
+
+    int64 start_time;
+    int64 process_time = 0;
 
     for(int i=0;i<num_images;i++)
     {
@@ -806,6 +831,8 @@ int testForestAlternateRH(std::string forest_path,
         img_full_path = img_path + std::to_string(image_index) + ir_image_suffix;
         depth_full_path = depth_path + std::to_string(image_index) + "depth.png";
         
+        start_time = cv::getTickCount();
+
         test_image = cv::imread(img_full_path, -1);
         depth_image = cv::imread(depth_full_path, -1);
 
@@ -856,6 +883,8 @@ int testForestAlternateRH(std::string forest_path,
             }
         }
 
+        process_time += (((cv::getTickCount() - start_time) / cv::getTickFrequency()) * 1000);
+
         IPUtils::threshold16(reg_mat, result_thresh, THRESHOLD_PARAM, 65535, 4);
         IPUtils::threshold16(depth_image, depth_thresh, THRESHOLD_PARAM, 65535, 4);
         err_nt = IPUtils::getError(depth_image, reg_mat);        
@@ -895,6 +924,10 @@ int testForestAlternateRH(std::string forest_path,
     std::cout << "Std dev (not thresholded): " << std::to_string(std_dev_nt[0]) << std::endl;
     std::cout << "Mean (thresholded): " << std::to_string(mean_t[0]) << std::endl;
     std::cout << "Std dev (thresholded): " << std::to_string(std_dev_t[0]) << std::endl;
+
+    float avg_process_time = alpha * process_time;
+    std::cout << "\nAverage per-frame process time: " << std::to_string(avg_process_time) << " ms" << std::endl;
+    std::cout << "\nAverage framerate: " << std::to_string(1000/avg_process_time) << " Hz" << std::endl;
 
     ofstream out_file;
     out_file.open(OUT_PATH + forest_prefix + test_image_prefix);
@@ -1016,17 +1049,26 @@ int testForest(std::string forest_path,
         realsense = true;
         rand_ints = random.RandomVector(0,1200,num_images,false);
     }
-    else
+    else if(test_image_prefix.compare("test")==0)
     {
         std::cout << "testing on training_images_2 test set" << std::endl; 
         realsense = true;
         rand_ints = random.RandomVector(10000,11000,num_images,false);
+    }
+    else
+    {
+        std::cout << "testing on training_realsense_2 test set" << std::endl; 
+        realsense = true;
+        rand_ints = random.RandomVector(1200,1500,num_images,false);   
     }
 
     
     std::string ir_image_suffix = "ir.png";
     if(forest_prefix.find("cam") != std::string::npos)
         ir_image_suffix = "cam.png";
+
+    int64 start_time;
+    int64 process_time = 0;
 
     for(int i=0;i<num_images;i++)
     {
@@ -1038,6 +1080,8 @@ int testForest(std::string forest_path,
 
         img_full_path = img_path + std::to_string(image_index) + ir_image_suffix;
         depth_full_path = depth_path + std::to_string(image_index) + "depth.png";
+        
+        start_time = cv::getTickCount();
         
         test_image = cv::imread(img_full_path, -1);
         depth_image = cv::imread(depth_full_path, -1);
@@ -1069,6 +1113,9 @@ int testForest(std::string forest_path,
             }
         }
         reg_mat = cv::Mat(480, 640, CV_16UC1, (uint16_t*)sum_weighted_output.data());
+
+        process_time += (((cv::getTickCount() - start_time) / cv::getTickFrequency()) * 1000);
+
         IPUtils::threshold16(reg_mat, result_thresh, THRESHOLD_PARAM, 65535, 4);
         IPUtils::threshold16(depth_image, depth_thresh, THRESHOLD_PARAM, 65535, 4);
         err_nt = IPUtils::getError(depth_image, reg_mat);
@@ -1110,6 +1157,10 @@ int testForest(std::string forest_path,
     std::cout << "Std dev (not thresholded): " << std::to_string(std_dev_nt[0]) << std::endl;
     std::cout << "Mean (thresholded): " << std::to_string(mean_t[0]) << std::endl;
     std::cout << "Std dev (thresholded): " << std::to_string(std_dev_t[0]) << std::endl;
+
+    float avg_process_time = alpha * process_time;
+    std::cout << "\nAverage per-frame process time: " << std::to_string(avg_process_time) << " ms" << std::endl;
+    std::cout << "\nAverage framerate: " << std::to_string(1000/avg_process_time) << " Hz" << std::endl;
 
     ofstream out_file;
     out_file.open(OUT_PATH + forest_prefix + test_image_prefix);
@@ -1278,6 +1329,83 @@ int growSomeForests(ProgramParameters& progParams)
     return -1;
 }
 
+int testColourisation(std::string file_path = "/media/james/data_wd/training_realsense", std::string depth_prefix = "img", int min_h = 240, int max_h =0)
+{
+    std::string image_path = file_path;
+    if(!IPUtils::dirExists(image_path))
+        throw std::runtime_error("Failed to find test image directory:" + image_path);        
+
+    // check path ends in '/'
+    if(image_path.back() != '/')
+        image_path += "/";
+
+    if(min_h > 360 || min_h < 0)
+    {
+        std::cout << "Invalid min_h: value " << std::to_string(min_h) << std::endl;
+        return -1;
+    }
+    if(max_h > 360 || max_h < 0)
+    {
+        std::cout << "Invalid max_h: value " << std::to_string(max_h) << std::endl;
+        return -1;
+    }
+    std::cout << "Testing Colourisation using:" << std::endl;
+    std::cout << "\t" << image_path << std::endl;
+    std::cout << "\t" << depth_prefix << std::endl;
+
+    std::vector<uint8_t> h_ints = IPUtils::generateGradientValues(0,255, 120, 0, true);
+
+    cv::Mat sample(256, 200,CV_8UC3, cv::Scalar(0,255,255));
+    cv::Mat sample_bgr;
+    for(int i=0;i<256;i++)
+    {
+        uint8_t* sample_pixel = sample.ptr<uint8_t>(i);
+        for(int c=0;c<200;c++)
+        {
+            sample_pixel[c*3] = h_ints[i];
+        }
+    }
+    cv::cvtColor(sample, sample_bgr, CV_HSV2BGR);
+    cv::imshow("sample", sample_bgr);
+
+    cv::Mat depth_raw(480,640,CV_16UC1);
+    cv::Mat depth_th(480,640,CV_16UC1);
+    cv::Mat depth_gs(480,640,CV_8UC1);
+    cv::Mat depth_bgr;
+    int rows = 480;
+    int cols = 640;
+
+    for(int i=1200 ; i>0 ; i--)
+    {
+        cv::Mat depth_hsv(480, 640, CV_8UC3, cv::Scalar(0,255,255));
+        std::string full_path = image_path + depth_prefix + std::to_string(i) + "depth.png";
+        
+        depth_raw = cv::imread(full_path, -1);
+        
+        IPUtils::threshold16(depth_raw, depth_th, 1200, 65535, 4);
+        depth_th.convertTo(depth_th, CV_16U, 0.2125);
+        IPUtils::Colorize16(depth_th, depth_bgr, false);
+        depth_th.convertTo(depth_gs, CV_8U);
+        
+        IPUtils::AddKey(depth_th, depth_bgr);
+
+        cv::imshow("grayscale", depth_gs);
+        cv::imshow("colour", depth_bgr);
+        cv::waitKey(30);
+    }
+
+    cv::startWindowThread();
+    cv::destroyAllWindows();
+
+    for(int i=0;i<256;i++)
+    {
+        std::cout << std::to_string(i) << "\t" << std::to_string(h_ints[i]) << std::endl;
+    }
+
+    return 0;
+
+}
+
 void printMenu()
 {
     std::cout << "*************************Forest training and testing*************************";
@@ -1287,6 +1415,8 @@ void printMenu()
     std::cout << "Enter 6 to do applyMultiLevel" << std::endl;
     std::cout << "Enter 7 to test Regression Forest" << std::endl;
     std::cout << "Enter 8 to test Classification Forest" << std::endl;
+    std::cout << "Enter 3 to test Colourisation" << std::endl;
+    std::cout << "Enter 4 to test Thresholding" << std::endl;
     std::cout << "Enter q to quit" << std::endl;
     std::cout << "\n" << std::endl;
 }
@@ -1323,15 +1453,26 @@ void interactiveMode()
         else if (in.compare("1") == 0)
         {
             //trainClassificationPar(FILE_PATH, forest_path, 100);
+            std::cout << "Nothing Here" << std::endl << std::endl;
             printMenu();
         }
         else if (in.compare("2") == 0)
         {
             //trainRegressionPar(FILE_PATH, forest_path, 100);
+            std::cout << "Nothing Here" << std::endl << std::endl;
+            printMenu();
+        }
+        else if (in.compare("3") == 0)
+        {
+            testColourisation();
+            printMenu();
+        }
+        else if (in.compare("4") == 0)
+        {
+            testFunction();
             printMenu();
         }
         else if (in.compare("q") == 0)
-            testFunction();
             cont = false;
 
         // Refresh cin buffer
@@ -1460,6 +1601,32 @@ int main(int argc, char *argv[])
             printUsage(true); 
         }
 
+    }
+    else if(argc == 4)
+    {
+        std::string first_arg = argv[1];
+        std::string second_arg = argv[2];
+        std::string third_arg = argv[3];
+        if(first_arg.compare("-c") == 0)
+        {
+            testColourisation(second_arg, third_arg);
+        }
+        else
+        {
+            printUsage(true);
+        }
+    }
+    else if(argc == 2)
+    {
+        std::string first_arg = argv[1];
+        if(first_arg.compare("-c") == 0)
+        {
+            testColourisation();
+        }
+        else
+        {
+            printUsage(true);
+        }
     }
     else if(argc == 7)
     {
