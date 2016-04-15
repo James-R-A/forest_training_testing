@@ -250,54 +250,192 @@ int regressOnline(std::string dir_path)
     return 0;
 }
 
-int classifyOnline(std::string dir_path)
+int classifyOnline(std::string forest_path,
+    std::string forest_prefix,
+    std::string test_image_path,
+    std::string test_image_prefix,
+    int num_images = 0)
 {
-    if (!IPUtils::dirExists(dir_path))
-        return 0;
+    if(!IPUtils::dirExists(forest_path))
+        throw std::runtime_error("Failed to find forest directory:" + forest_path);
 
-    if(dir_path.back() != '/')
-        dir_path += "/";
+    if(!IPUtils::dirExists(test_image_path))
+        throw std::runtime_error("Failed to find test image directory:" + test_image_path);        
 
-    std::cout << "Looking in:\t" << dir_path << std::endl << "Filename?\t";
-    std::string filename;
-    std::cin >> filename;
-    std::string forest_path = dir_path + filename;
-    std::cout << "Attempting to deserialize forest from " << forest_path << std::endl;
+    // check path ends in '/'
+    if(forest_path.back() != '/')
+        forest_path += "/";
+    if(test_image_path.back() != '/')
+        test_image_path += "/";
 
-    std::string img_path = dir_path + "img";
-    std::string pathstring;
+    // Initialize classification forest path string and vector of expert forest class strings
+    std::string class_path = forest_path + forest_prefix + "_classifier.frst";
+    std::cout << "Attempting to deserialize forest from " << class_path << std::endl;
+    // Init a pointer to a classifier
+    std::unique_ptr<ForestShared<PixelSubtractionResponse, HistogramAggregator> > classifier;
+
+    // Load the classifier and expert regressors.
+    try
+    {
+        std::cout << "Loading classifier" << std::endl;
+        // load classifier
+        std::unique_ptr<Forest<PixelSubtractionResponse, HistogramAggregator> > c_forest =
+            Forest<PixelSubtractionResponse, HistogramAggregator>::Deserialize(class_path);
+        // Create ForestShared from loaded forest
+        std::unique_ptr<ForestShared<PixelSubtractionResponse, HistogramAggregator> > c_forest_shared =
+            ForestShared<PixelSubtractionResponse, HistogramAggregator>::ForestSharedFromForest(*c_forest);
+        // Delete original forest. May roll these steps into one later if we don't need a regular forest application.
+        c_forest->~Forest();
+        c_forest.release();
+        classifier = move(c_forest_shared);
+        std::cout << "Classifier loaded with " << std::to_string(classifier->TreeCount()) << " trees" << std::endl;
+    }
+    catch(const std::runtime_error& e)
+    {
+        std::cerr << "Forest loading Failed" << std::endl;
+        std::cerr << e.what() << std::endl;
+    }
+
     cv::Mat test_image = cv::Mat(cv::Size(640, 480), CV_8UC1);
     cv::Mat bins_mat;
     cv::Mat result_norm1;
 
-    // load forest
-    std::unique_ptr<Forest<PixelSubtractionResponse, HistogramAggregator> > forest =
-        Forest<PixelSubtractionResponse, HistogramAggregator>::Deserialize(forest_path);
-    // Create ForestShared from loaded forest
-    std::unique_ptr<ForestShared<PixelSubtractionResponse, HistogramAggregator> > forest_shared =
-        ForestShared<PixelSubtractionResponse, HistogramAggregator>::ForestSharedFromForest(*forest);
-    // Delete original forest. May roll these steps into one later if we don't need a regular forest application.
-    forest->~Forest();
-    forest.release();
+    std::string img_path = test_image_path+test_image_prefix;
+    std::string img_full_path;
+    std::vector<int32_t> gt_error(THRESHOLD_PARAM, 0);
+    std::vector<int32_t> gt_inc(THRESHOLD_PARAM, 0);
+    cv::Mat depth_image(480, 640, CV_16UC1);
+    cv::Mat result_thresh(480, 640, CV_16UC1);
+    cv::Mat depth_thresh(480, 640, CV_16UC1);
+    cv::Mat temp_mat(480, 640, CV_16UC1);
+    int images_processed = 0;
+    bool realsense = false;
 
-    for (int i = 0; i < 106; i++)
+    int threshold_value = 38;
+    size_t t_pos = forest_prefix.find("T");
+    if(t_pos != std::string::npos)
     {
-        int64 start_time = cv::getTickCount();
-        pathstring = img_path + std::to_string(i) + "ir.png";
-        test_image = cv::imread(pathstring, -1);
-        if (!test_image.data)
-            continue;
+        threshold_value = std::stoi(forest_prefix.substr(t_pos+1, t_pos+2));
 
-        std::unique_ptr<DataPointCollection> test_data1 = DataPointCollection::LoadMat(test_image, cv::Size(640, 480));
-        bins_mat = Classifier<PixelSubtractionResponse>::ApplyMat(*forest_shared, *test_data1);
+    }
+    std::cout << "Threshold value used " << std::to_string(threshold_value) << std::endl;
+
+
+    Random random;
+    int use_images = 0;
+    std::vector<int> rand_ints;
+    if (num_images != 0)
+    {
+        use_images = num_images;
+        rand_ints.resize(num_images);
+        if(test_image_prefix.compare("img")==0)
+        {
+            std::cout << "testing on training_realsense training set" << std::endl; 
+            realsense = true;
+            rand_ints = random.RandomVector(0,1200,num_images,false);
+        }
+        else if(test_image_prefix.compare("test")==0)
+        {
+            std::cout << "testing on training_images_2 test set" << std::endl; 
+            realsense = true;
+            rand_ints = random.RandomVector(10000,11000,num_images,false);
+        }
+        else
+        {
+            std::cout << "testing on training_realsense_2 test set" << std::endl; 
+            realsense = true;
+            rand_ints = random.RandomVector(1200,1500,num_images,false);   
+        }    
+    }
+    else
+    {
+        if(test_image_prefix.compare("img")==0)
+        {
+            use_images = 1200;
+            rand_ints.resize(1200);
+            std::cout << "testing on training_realsense training set" << std::endl; 
+            realsense = true;
+            std::iota(rand_ints.begin(), rand_ints.end(), 0);
+        }
+        else if(test_image_prefix.compare("test")==0)
+        {
+            use_images = 1000;
+            rand_ints.resize(1000);
+            std::cout << "testing on training_images_2 test set" << std::endl; 
+            realsense = true;
+            std::iota(rand_ints.begin(), rand_ints.end(), 10000);
+        }
+        else
+        {
+            use_images = 300;
+            rand_ints.resize(300);
+            std::cout << "testing on training_realsense_2 test set" << std::endl; 
+            realsense = true;
+            std::iota(rand_ints.begin(), rand_ints.end(), 1200);
+        }
+    }
+    
+    
+    
+    std::string ir_image_suffix = "ir.png";
+    if(forest_prefix.find("cam") != std::string::npos)
+        ir_image_suffix = "cam.png";
+
+    for (int i = 0; i < use_images; i++)
+    {
+        int image_index;
+        if(realsense)
+            image_index = rand_ints[i];
+        else
+            image_index = 10000+i;
+
+        img_full_path = img_path + std::to_string(image_index) + ir_image_suffix;
+        test_image = cv::imread(img_full_path, -1);
+
+        std::cout << img_full_path << std::endl;
+
+         if(!test_image.data)
+        {
+            std::cerr << "Error loading image:\n\t" << img_full_path << std::endl;
+            continue;
+        }
+
+        // Pre process the test image (need to do this for the alternate training where we don't use zero inputs)
+        // TODO get some parameters into this
+        test_image = IPUtils::preProcess(test_image, threshold_value);
+
+        std::unique_ptr<DataPointCollection> test_data1 = DataPointCollection::LoadMat(test_image, cv::Size(640, 480), false, false);
+        bins_mat = Classifier<PixelSubtractionResponse>::ApplyMat(*classifier, *test_data1);
         std::vector<uchar> bins_vec = IPUtils::vectorFromBins(bins_mat, cv::Size(640, 480));
-        cv::Mat result_mat1 = cv::Mat(480, 640, CV_8UC1, (uint8_t*)bins_vec.data());
-        result_mat1.convertTo(result_norm1, CV_8U, 63);
-        cv::imshow("output", result_norm1);
-        int64 process_time = (((cv::getTickCount() - start_time) / cv::getTickFrequency()) * 1000);
-        std::cout << "Process time: " << std::to_string(process_time) << std::endl;
-        int wait_time = std::max(2, (int)(LOOP_DELAY - process_time));
-        if(cv::waitKey(wait_time) >= 0)
+
+        int output_index = 0;
+        cv::Mat result_mat = cv::Mat::zeros(480, 640, CV_8UC1);
+        for(int r=0;r<480;r++)
+        {
+            uchar* test_image_pix = test_image.ptr<uchar>(r);
+            uchar* res_mat_pix = result_mat.ptr<uchar>(r);
+            for(int c=0;c<640;c++)
+            {
+                if(test_image_pix[c] == 0)
+                {
+                    continue;
+                }
+                else
+                {
+                    // this might fail if we go out of bounds somehow.
+                    res_mat_pix[c] = bins_vec[output_index];
+                    output_index++;
+                }
+            }
+        }
+
+        result_mat.convertTo(result_norm1, CV_8U, 63);
+        //cv::imshow("output", result_norm1);
+        cv::Mat colourized;
+        cv::applyColorMap(result_norm1, colourized, cv::COLORMAP_JET);
+        cv::imshow("output", colourized);
+        
+        if(cv::waitKey(30) >= 0)
             break;
     }
     cv::startWindowThread();
@@ -1452,7 +1590,8 @@ void interactiveMode()
         }
         else if (in.compare("8") == 0)
         {
-            classifyOnline(forest_path);
+            //classifyOnline(forest_path);
+            std::cout << "Nothing Here" << std::endl << std::endl;
             printMenu();
         }
         else if (in.compare("1") == 0)
@@ -1685,6 +1824,24 @@ int main(int argc, char *argv[])
             std::cout << "Test image prefix: " << test_image_prefix << std::endl;
             std::cout << "Images to use in testing: " << std::to_string(num_test_images) << std::endl;
             testForestAlternateRH(forest_path, 
+                forest_prefix, 
+                test_image_path, 
+                test_image_prefix, 
+                num_test_images);    
+        }
+        else if(frst_arg.compare("-c")==0)
+        {
+            std::string forest_path = argv[2];
+            std::string forest_prefix = argv[3];
+            std::string test_image_path = argv[4];
+            std::string test_image_prefix = argv[5];
+            int num_test_images = std::stoi(std::string(argv[6]));
+            std::cout << "Forest path: " << forest_path << std::endl;
+            std::cout << "Forest prefix: " << forest_prefix << std::endl;
+            std::cout << "Test image path: " << test_image_path << std::endl;
+            std::cout << "Test image prefix: " << test_image_prefix << std::endl;
+            std::cout << "Images to use in testing: " << std::to_string(num_test_images) << std::endl;
+            classifyOnline(forest_path, 
                 forest_prefix, 
                 test_image_path, 
                 test_image_prefix, 
