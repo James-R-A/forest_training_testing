@@ -3,6 +3,7 @@
 
 namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 {
+    // Calculates Shannon entropy
     double HistogramAggregator::Entropy() const
     {
         if (sampleCount_ == 0)

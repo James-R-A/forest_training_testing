@@ -2,10 +2,14 @@
 #include "FeatureResponseFunctions.h"
 #include "StatisticsAggregators.h"
 
-// Default serialization functions used for serializing all types.
+// Default serialization are functions used for serializing all types.
 // Works fine for basic types, but if implementations are not simple 
 // value types then use explicit template specialization to override.
 // Some examples are shown in this file.
+// Microsoft visual C++ acts slightly differently to other compilers
+// so make sure serialisation and deserialisation functions are defined
+// for both.
+
 namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 {
 

@@ -151,8 +151,9 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
     /// <summary>
     /// Access the specified tree.
-  /// Beware, this transfers ownership of the auto_ptr to the tree
-  /// trees_[index] will be null after calling this function.
+    /// Beware, this transfers ownership of the auto_ptr to the tree
+    /// trees_[index] will be null after calling this function.
+    /// To avoid this, use GetTreeShared(index)
     /// </summary>
     /// <param name="index">A zero-based integer index.</param>
     /// <returns>The tree.</returns>

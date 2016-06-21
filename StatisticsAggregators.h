@@ -14,7 +14,7 @@
 #include "Interfaces.h"
 #include "DataPointCollection.h"
 
-// Maximum number of categories allowed. Not sure why 4 atm, but will look into it
+// Maximum number of categories allowed.
 #define MAX_BINS 5
 
 namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood 
@@ -65,6 +65,10 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         //////////// END IStatisticsAggregator implementation ////////////////
     };
 
+    // DiffEntropyAggregator is basically just a 1-d gaussian and stores 
+    // the mean, variance, and sum squared error
+    // The "entropy" value calculated is log(var_) = differential entropy
+    // hence the name.
     struct DiffEntropyAggregator
     {
     public:

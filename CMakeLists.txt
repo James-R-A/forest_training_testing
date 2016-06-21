@@ -42,7 +42,6 @@ add_executable( FTT ForestTrainingTesting.cpp
 			DataPointCollection.cpp
 			FeatureResponseFunctions.cpp
 			IPUtils.cpp
-			Regression.cpp
 			StatisticsAggregators.cpp )
 
 target_link_libraries( FTT ${OpenCV_LIBS} )

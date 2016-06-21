@@ -31,11 +31,17 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
       MaxThreads = omp_get_max_threads();     
     }
 
+    // Number of trees in a forest
     int NumberOfTrees;
+    // Number of candidate feature response functions (split functions) generated
+    // for evaluation
     int NumberOfCandidateFeatures;
+    // Number of thresholds tested per candidate feature
     unsigned int NumberOfCandidateThresholdsPerFeature;
+    // maximum number of tree levels
     int MaxDecisionLevels;
     bool Verbose;
+    // Maximum threads available for parallel training
     int MaxThreads;
   };
 
@@ -65,29 +71,46 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
   ///</summary>
   struct ProgramParameters
   {
+    // training parameters for classification or regression
     TrainingParameters Tpc;
     TrainingParameters Tpr;
+    // Forest output file name (suffix will be added)
     std::string OutputFilename;
+    // Full path to training images
     std::string TrainingImagesPath;
+    // first bit of image name eg img for img103ir.png
     std::string InputPrefix;
     int NumberTrainingImages;
+    // start number of training images
     int TrainingImagesStart;
     ForestDescriptor::e ForestType;
     SplitFunctionDescriptor::e SplitFunctionType;
+    // for training an expert regressor
     int ExpertClassNo;
+    // Depth raw is normalised, this'll always be false for 
+    // mm scaled depth images
     bool DepthRaw;
+    // side length of square patch centred on pixel-of-interest
     int PatchSize;
+    // number of depth bins
     int Bins;
     int ImgHeight;
     int ImgWidth;
+    // set true to include zero IR intensity pixels in training data
     bool TrainOnZeroIR;
+    // maximum range
     int MR;
+    // Threshold value for pre-processing
     int Threshold;
+    // Ir images captured using the modified webcam?
     bool Webcam;
+    // Majority of images within 0-300 mm?
     bool Closeup;
 
     ProgramParameters()
     {
+      // Defaults. obviously the default paths and things will need
+      // overwriting in a config file, and default values may do too.
       OutputFilename = "default";
       TrainingImagesPath = "/media/james/data_wd/training_realsense";
       InputPrefix = "img";

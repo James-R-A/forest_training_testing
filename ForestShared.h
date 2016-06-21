@@ -8,7 +8,9 @@
 // This class allows the repeated application of trees in a forest without the 
 // individual trees going out of scope after a single use due to the use of auto_ptr's 
 // Alternate solutions to this required construction of a shared_ptr every time a tree
-// was called. This was wasteful and slow.
+// was called, which was wasteful and slow.
+// As of 21/06/16 the use of the ForestShared object is the best option 
+// for repeted use of a single forest.
 
 namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 {
@@ -27,10 +29,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         std::vector<std::shared_ptr<Tree<F, S> > > trees_;
 
         ~ForestShared()
-        {
-            //for (TreeIndex t = 0; t<trees_.size(); t++)
-            //  delete trees_[t].get();
-        }
+        {}
 
         /// <summary>
         /// Constructs a ForestShared where the vector of trees is a vector of std::shared_ptr's instead

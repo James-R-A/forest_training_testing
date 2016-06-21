@@ -228,7 +228,6 @@ std::vector<uchar> IPUtils::vectorFromBins(cv::Mat bin_mat, cv::Size expected_si
     // TODO change from at to ptr.
     for (int i = 0; i < samples; i++)
     {
-        //int* bin = bin_mat.ptr<int>(i);
         row_max = bin_mat.at<int>(i,0);
         row_max_index = 0;
         for (int j = 1; j < bins; j++)

@@ -328,6 +328,8 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
     }
 
   #ifdef _OPENMP
+    // this was a temporary fix for a broken ParallelForestTrainer class
+    // It isn't used now, but effectively just trains multiple trees at once.
   static std::unique_ptr<Forest<F, S> > ParallelTrainForest(
     Random& random,
     const TrainingParameters& parameters,
