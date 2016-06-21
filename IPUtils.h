@@ -77,7 +77,7 @@ public:
     static int Colourize(cv::Mat& in, cv::Mat& out, int min_h, int max_h, bool inv, bool zero_black = true);
 
     static int AddKey(cv::Mat& original, cv::Mat& colour, int min_h=120, int max_h=0, bool inv=true);
-    static int GetKey(cv::Mat& original, cv::Mat& key_out, int min_h=120, int max_h=0, bool inv=true);
+    static cv::Mat AddKey(int min, int max, cv::Mat& mat_in);
 
     IPUtils();
     ~IPUtils();

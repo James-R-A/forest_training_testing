@@ -39,8 +39,10 @@ namespace MicrosoftResearch {
                 return u * x;
             }
 
-            /// <summary>   f(x,n) = Sum(n*p(x)) where n is a randomly generated integer,
-            ///             and p(x) is a pixel in the patch surrounding pixel x. patch size^2 = dimensions</summary>
+            /// <summary>   
+            ///     f(x) = Sum(p(x)) where n is a randomly generated integer,
+            ///     and p(x) is a pixel in the patch surrounding pixel x. patch size^2 = dimensions
+            /// </summary>
             class RandomHyperplaneFeatureResponse
             {
             public:
@@ -51,11 +53,14 @@ namespace MicrosoftResearch {
                     dimensions = 0;
                 }
 
+                /// <summary>
+                /// Creates a RandomHyperplaneFeatureResponse object.
+                /// The randomly generated variables here are the offset values
+                /// </summary>
                 RandomHyperplaneFeatureResponse(Random& random,
                     unsigned int dimensions)
                     : dimensions(dimensions)
                 {
-
                     offset.resize(dimensions);
 
                     int ub = (int)((sqrt(dimensions) -1) / 2);
@@ -64,13 +69,14 @@ namespace MicrosoftResearch {
                     for (unsigned int c = 0; c < dimensions; c++) {
                         offset[c] = cv::Point(random.Next(lb,ub), random.Next(lb,ub));
                     }
-
-                    
                 }
 
                 static RandomHyperplaneFeatureResponse CreateRandom(Random& random, unsigned int dimensions);
 
                 // IFeatureResponse implementation
+                /// <summary>
+                /// Calculates the sum of a number of pixels in a patch surrounding a pixel
+                /// </summary>
                 float GetResponse(const IDataPointCollection& data, unsigned int index) const;
 
             };
@@ -91,11 +97,14 @@ namespace MicrosoftResearch {
                     offset_1 = cv::Point(0,0);
                 }
 
+                /// <summary>
+                /// Creates PixelSubtractionResponse object, each 2-d offset is randomly generated
+                /// </summary>
                 PixelSubtractionResponse(Random& random,
                     unsigned int dimensions)
                     : dimensions(dimensions)
                 {
-                    
+                    // calculate upper and lower bounds
                     int ub = (int)ceil(sqrt(dimensions) / 2);
                     int lb = 0 - ub;
 
@@ -106,6 +115,9 @@ namespace MicrosoftResearch {
                 static PixelSubtractionResponse CreateRandom(Random& random, unsigned int dimensions);
                 
                 // IFeatureResponse implementation
+                /// <summary>
+                /// Calculates the difference of two pixels in a patch surrounding a pixel in an image.
+                /// </summary>
                 float GetResponse(const IDataPointCollection& data, unsigned int index) const;
 
             };

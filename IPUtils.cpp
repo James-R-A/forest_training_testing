@@ -669,35 +669,41 @@ int IPUtils::AddKey(cv::Mat& original, cv::Mat& colour, int min_h, int max_h, bo
     return 0;
 }
 
-int IPUtils::GetKey(cv::Mat& original, cv::Mat& key_out, int min_h, int max_h, bool inv)
+cv::Mat IPUtils::AddKey(int min, int max, cv::Mat& mat_in)
 {
-    int min, max;
-    double min_d, max_d;
+    cv::Mat img_matches(480, 850, CV_8UC3, cv::Scalar(255,255,255));
 
-    cv::minMaxLoc(original, &min_d, &max_d);
-    min = int(min_d);
-    max = int(max_d);
-
-    std::vector<uint8_t> h_ints = generateGradientValues(0,255,min_h, max_h, inv);
-
-    cv::Mat key(256, 50,CV_8UC3, cv::Scalar(0,255,255));
+    float interval;
+    interval = float(255) / 460;
+    //std::cout << std::to_string(interval) << std::endl;
+    float current_value = 255;
+    float temp = current_value;
+    
+    cv::Mat key(460, 50,CV_8UC1);
     cv::Mat key_bgr;
-    for(int i=0;i<256;i++)
+    for(int i=0;i<460;i++)
     {
+        temp = current_value;
+        //std::cout << std::to_string(current_value) << std::endl;
         uint8_t* key_pixel = key.ptr<uint8_t>(i);
         for(int c=0;c<50;c++)
         {
-            key_pixel[c*3] = h_ints[255 - i];
+            key_pixel[c] = uint8_t(round(temp));
         }
+        current_value = current_value - interval;
     }
-    cv::cvtColor(key, key_bgr, CV_HSV2BGR);
-    cv::rectangle(key_bgr, cv::Point(0,0), cv::Point(49,255), cv::Scalar(0,0,0), 2);
-    cv::Mat region_of_interest(key_out, cv::Rect(25,50,50,256));
-    key_bgr.copyTo(region_of_interest);
-    cv::putText(key_out, std::to_string(max), cv::Point(25,46), 3, 1, cv::Scalar(0,0,0), 1, 8);
-    cv::putText(key_out, std::to_string(min), cv::Point(25,330), 3, 1, cv::Scalar(0,0,0), 1, 8);
+    cv::applyColorMap(key, key_bgr, cv::COLORMAP_JET);
+    cv::rectangle(key_bgr, cv::Point(0,0), cv::Point(49,459), cv::Scalar(0,0,0), 3);
+
+    cv::Mat left(img_matches, cv::Rect(0, 0, 640, 480)); // Copy constructor
+    mat_in.copyTo(left);
+    cv::Mat right(img_matches, cv::Rect(645, 10, 50, 460)); // Copy constructor
+    key_bgr.copyTo(right);
+
+    cv::putText(img_matches, std::to_string(max)+"mm", cv::Point(695,30), 2, 1, cv::Scalar(0,0,0), 1, 8);
+    cv::putText(img_matches, std::to_string(min)+"mm", cv::Point(695,469), 2, 1, cv::Scalar(0,0,0), 1, 8);
     
-    return 0;
+    return img_matches;
 }
 
 #ifdef __WIN32

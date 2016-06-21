@@ -1,3 +1,14 @@
+/*
+This file contains main() and other top-level functions
+
+    As a general precursor to all the code in this project: the closer it got to the 
+    deadline of the project, the worse the code got. 
+    It became messier, less well documented, and generally poorer.
+
+    James Andrew
+    jamesrobertandrew1993@gmail.com
+*/
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -20,8 +31,11 @@ using namespace MicrosoftResearch::Cambridge::Sherwood;
 #define DEF_REG_LEVELS 20
 #define DEF_CLASS_LEVELS 22
 #define THRESHOLD_PARAM 1200
-#define OUT_PATH "/home/james/workspace/forest_output_files/test/"
+// Hard-coded output paths for some results and of accuracy testing 
+#define OUT_PATH "/home/james/workspace/forest_output_files/temp/"
+#define IMAGE_OUT "/media/james/data_wd/output_images/"
 
+// Some default paths for tinkering
 #ifdef _WIN32
 const std::string FILE_PATH = "D:\\";
 #endif
@@ -29,18 +43,24 @@ const std::string FILE_PATH = "D:\\";
 const std::string FILE_PATH = "/media/james/data_wd/";
 #endif
 
+// Trains a classification forest using the multi-threaded training algorithm
+// INPUTS: ProgramParameters& a reference to a program parameters object
+// OUTPUTS: None
+// NOTES: saves a classification forest to the forest output path as specified in 
+//        function input object.
 int trainClassificationPar(ProgramParameters& progParams)
 {
+    // Ensure the path to the training images ends in a /
     if(progParams.TrainingImagesPath.back() != '/')
         progParams.TrainingImagesPath += "/";
 
     std::string filename = progParams.TrainingImagesPath + progParams.OutputFilename + "_classifier.frst";
      
+    // load up the training data
     std::cout << "Searching for some IR and depth images in " << progParams.TrainingImagesPath << std::endl;
-    
-    //std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesClass(progParams);
     std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImages(progParams, true);
     
+    // Check and display some data for reference
     int images = training_data->CountImages();
     std::cout << "Data loaded from images: " << std::to_string(images) << std::endl;
     std::cout << "of size: " << std::to_string(progParams.ImgHeight * progParams.ImgWidth) << std::endl;
@@ -65,27 +85,35 @@ int trainClassificationPar(ProgramParameters& progParams)
     return 0;
 }
 
+// Trains a regression forest using the multi-threaded training algorithm
+// INPUTS: ProgramParameters& a reference to a program parameters object
+//         class_expert_no. Integer representing the class number to which 
+//         an "expert" forest belongs. If -1, it is a standalone forest
+//         note, this is only used in the naming of the output file
+// OUTPUTS: None
+// NOTES: saves a regression forest to the forest output path as specified in 
+//        function input object.
 int trainRegressionPar(ProgramParameters& progParams, int class_expert_no = -1)
 {
     std::string file_suffix;
     
+    // adapt output file name depending on inputs
     if(class_expert_no != -1)
         file_suffix = "_expert" + std::to_string(class_expert_no) + ".frst";
     else
         file_suffix = "_regressor.frst";
 
+    // check path delimiter
     if(progParams.TrainingImagesPath.back() != '/')
         progParams.TrainingImagesPath += "/";
 
     std::string filename = progParams.TrainingImagesPath + progParams.OutputFilename + file_suffix;
-
     std::cout << "Searching for some IR and depth images in " << progParams.TrainingImagesPath << std::endl;
-
     
     // create a DataPointCollection in the regression format
-    //std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImagesRegression(progParams, class_expert_no); 
     std::unique_ptr<DataPointCollection> training_data = DataPointCollection::LoadImages(progParams, false, class_expert_no); 
 
+    // some checking and simple data output
     int images = training_data->CountImages();
     std::cout << "Data loaded from images: " << std::to_string(images) << std::endl;
     std::cout << "of size: " << std::to_string(progParams.ImgHeight * progParams.ImgWidth) << std::endl;
@@ -111,6 +139,8 @@ int trainRegressionPar(ProgramParameters& progParams, int class_expert_no = -1)
     return 0;
 }
 
+// Train a classification forest with the random hyperplane split function. As above but using
+// RandomHyperplaneFeatureResponse instead of PixelDifferenceFeatureResponse
 int trainClassificationRH(ProgramParameters& progParams)
 {
     if(progParams.TrainingImagesPath.back() != '/')
@@ -147,6 +177,8 @@ int trainClassificationRH(ProgramParameters& progParams)
     return 0;
 }
 
+// Train a regression forest with the random hyperplane split function. As above but using
+// RandomHyperplaneFeatureResponse instead of PixelDifferenceFeatureResponse
 int trainRegressionRH(ProgramParameters& progParams, int class_expert_no = -1)
 {
     std::string file_suffix;
@@ -193,6 +225,8 @@ int trainRegressionRH(ProgramParameters& progParams, int class_expert_no = -1)
     return 0;
 }
 
+// Get and display output from regression forest
+// This is old, probably doesn't work anymore due to things being hardcoded
 int regressOnline(std::string dir_path)
 {
     if (!IPUtils::dirExists(dir_path))
@@ -250,6 +284,8 @@ int regressOnline(std::string dir_path)
     return 0;
 }
 
+// Get and display output from classification forest
+// This is old, probably doesn't work anymore due to things being hardcoded
 int classifyOnline(std::string forest_path,
     std::string forest_prefix,
     std::string test_image_path,
@@ -379,7 +415,12 @@ int classifyOnline(std::string forest_path,
     
     std::string ir_image_suffix = "ir.png";
     if(forest_prefix.find("cam") != std::string::npos)
+    {
         ir_image_suffix = "cam.png";
+        threshold_value = 79;
+    }
+
+    std::string savepath = IMAGE_OUT + forest_prefix + test_image_prefix + "Binned";
 
     for (int i = 0; i < use_images; i++)
     {
@@ -432,11 +473,19 @@ int classifyOnline(std::string forest_path,
         result_mat.convertTo(result_norm1, CV_8U, 63);
         //cv::imshow("output", result_norm1);
         cv::Mat colourized;
+        //cv::applyColorMap(result_mat, colourized, cv::COLORMAP_JET);
         cv::applyColorMap(result_norm1, colourized, cv::COLORMAP_JET);
         cv::imshow("output", colourized);
-        
-        if(cv::waitKey(30) >= 0)
+        int blah = cv::waitKey(100);
+        //if(blah == 115)
+        //{
+        cv::imwrite(savepath+"gs"+std::to_string(rand_ints[i])+".png", result_norm1);
+        cv::imwrite(savepath+"Colour"+std::to_string(rand_ints[i])+".png", colourized);
+        //}
+        if(blah == 113)
+        {
             break;
+        }
     }
     cv::startWindowThread();
     cv::destroyAllWindows();
@@ -649,6 +698,8 @@ int testForestAlternate(std::string forest_path,
     std::vector<int32_t> gt_inc(THRESHOLD_PARAM, 0);
     cv::Mat msse_nt(480, 640, CV_32SC1);
     cv::Mat depth_image(480, 640, CV_16UC1);
+    cv::Mat depth_norm;
+    cv::Mat err_norm;
     cv::Mat test_image(480, 640, CV_8UC1);
     cv::Mat bins_mat;
     cv::Mat result_thresh(480, 640, CV_16UC1);
@@ -665,12 +716,16 @@ int testForestAlternate(std::string forest_path,
         threshold_value = std::stoi(forest_prefix.substr(t_pos+1, t_pos+2));
 
     }
-    std::cout << "Threshold value used " << std::to_string(threshold_value) << std::endl;
-
+    
     std::string ir_image_suffix = "ir.png";
 
     if(forest_prefix.find("cam") != std::string::npos)
+    {
         ir_image_suffix = "cam.png";
+        threshold_value = 79;
+    }
+
+    std::cout << "Threshold value used " << std::to_string(threshold_value) << std::endl;
 
     Random random;
     std::vector<int> rand_ints(num_images);
@@ -692,6 +747,8 @@ int testForestAlternate(std::string forest_path,
         realsense = true;
         rand_ints = random.RandomVector(1200,1500,num_images,false);   
     }
+
+    std::string savepath = IMAGE_OUT + forest_prefix + test_image_prefix + "Result";
 
     int64 start_time;
     int64 process_time = 0;
@@ -765,12 +822,28 @@ int testForestAlternate(std::string forest_path,
         IPUtils::threshold16(depth_image, depth_thresh, THRESHOLD_PARAM, 65535, 4);
         err_nt = IPUtils::getError(depth_image, reg_mat);        
         err_t = IPUtils::getError(depth_thresh, result_thresh); 
-        // result_thresh.convertTo(result_thresh, CV_16U, 54);
-        // depth_thresh.convertTo(depth_thresh, CV_16U, 54);
+        
+        double min_err, max_err;
+        cv::minMaxLoc(err_t, &min_err, &max_err);
+        std::cout << "Min " << std::to_string(min_err) << "Max " << std::to_string(max_err) << std::endl;
+        cv::normalize(err_t, err_norm, 0, 255, cv::NORM_MINMAX, CV_8UC1);
+        //err_t.convertTo(err_norm, CV_8U, 0.2125);
+        result_thresh.convertTo(depth_norm, CV_16U, 54);
         // cv::imshow("error_nthresh", err_nt);
         // cv::imshow("error_thresh", err_t);
-        // cv::imshow("depth", depth_thresh);
-        // cv::imshow("result", result_thresh);
+        cv::Mat err_colourized(480, 640, CV_8UC3);
+        cv::applyColorMap(err_norm, err_colourized, cv::COLORMAP_JET);
+        cv::Mat img_with_key = IPUtils::AddKey(int(min_err), int(max_err), err_colourized);
+        //cv::imshow("error", err_colourized);
+        //cv::imshow("depth", depth_norm);
+        //cv::imshow("with key", img_with_key);
+        
+        if(max_err <= 800)
+        {
+            cv::imwrite(savepath+"depth"+std::to_string(rand_ints[i])+".png", depth_norm);
+            cv::imwrite(savepath+"error"+std::to_string(rand_ints[i])+".png", img_with_key);
+        }
+
         int rows = depth_thresh.size().height;
         int cols = depth_thresh.size().width;
 
@@ -787,6 +860,7 @@ int testForestAlternate(std::string forest_path,
         sse_t = sse_t + err_t;
         sse_nt = sse_nt + err_nt;
         images_processed++;
+        //cv::waitKey(30);
     }
 
     float alpha = 1.0 / images_processed;
@@ -926,9 +1000,7 @@ int testForestAlternateRH(std::string forest_path,
         threshold_value = std::stoi(forest_prefix.substr(t_pos+1, t_pos+2));
 
     }
-    std::cout << "Threshold value used " << std::to_string(threshold_value) << std::endl;
-
-
+    
     Random random;
     std::vector<int> rand_ints(num_images);
     if(test_image_prefix.compare("img")==0)
@@ -952,7 +1024,12 @@ int testForestAlternateRH(std::string forest_path,
     
     std::string ir_image_suffix = "ir.png";
     if(forest_prefix.find("cam") != std::string::npos)
+    {
         ir_image_suffix = "cam.png";
+        threshold_value = 79;
+    }
+
+    std::cout << "Threshold value used " << std::to_string(threshold_value) << std::endl;
 
     int64 start_time;
     int64 process_time = 0;
@@ -1467,88 +1544,129 @@ int growSomeForests(ProgramParameters& progParams)
     return -1;
 }
 
-int testColourisation(std::string file_path = "/media/james/data_wd/training_realsense", std::string depth_prefix = "img", int min_h = 240, int max_h =0)
+
+int testIrLimit(std::string test_image_path,
+    std::string test_image_prefix,
+    int num_images)
 {
-    std::string image_path = file_path;
-    if(!IPUtils::dirExists(image_path))
-        throw std::runtime_error("Failed to find test image directory:" + image_path);        
+    if(!IPUtils::dirExists(test_image_path))
+        throw std::runtime_error("Failed to find test image directory:" + test_image_path);  
 
-    // check path ends in '/'
-    if(image_path.back() != '/')
-        image_path += "/";
+    if(test_image_path.back() != '/')
+        test_image_path += "/";
 
-    if(min_h > 360 || min_h < 0)
+    std::vector<uint64_t> ir_acc(THRESHOLD_PARAM, 0);
+    std::vector<int> depth_count(THRESHOLD_PARAM, 0);
+
+    bool realsense = false;
+    Random random;
+    std::vector<int> rand_ints(num_images);
+    std::string ir_image_suffix = "ir.png";
+    std::string temp_string = test_image_prefix;
+    int input_threshold = 38;
+    if(test_image_prefix.compare("img")==0)
     {
-        std::cout << "Invalid min_h: value " << std::to_string(min_h) << std::endl;
-        return -1;
+        std::cout << "testing on training_realsense training set" << std::endl; 
+        realsense = true;
+        rand_ints = random.RandomVector(0,1200,num_images,false);
     }
-    if(max_h > 360 || max_h < 0)
+    else if(test_image_prefix.compare("test")==0)
     {
-        std::cout << "Invalid max_h: value " << std::to_string(max_h) << std::endl;
-        return -1;
+        std::cout << "testing on training_images_2 ir test set" << std::endl; 
+        realsense = true;
+        rand_ints = random.RandomVector(10000,11000,num_images,false);
     }
-    std::cout << "Testing Colourisation using:" << std::endl;
-    std::cout << "\t" << image_path << std::endl;
-    std::cout << "\t" << depth_prefix << std::endl;
-
-    std::vector<uint8_t> h_ints = IPUtils::generateGradientValues(0,255, 120, 0, true);
-
-    // cv::Mat sample(256, 200,CV_8UC3, cv::Scalar(0,255,255));
-    // cv::Mat sample_bgr;
-    // for(int i=0;i<256;i++)
-    // {
-    //     uint8_t* sample_pixel = sample.ptr<uint8_t>(i);
-    //     for(int c=0;c<200;c++)
-    //     {
-    //         sample_pixel[c*3] = h_ints[i];
-    //     }
-    // }
-    // cv::cvtColor(sample, sample_bgr, CV_HSV2BGR);
-    // cv::imshow("sample", sample_bgr);
-
-    cv::Mat depth_raw(480,640,CV_16UC1);
-    cv::Mat depth_th(480,640,CV_16UC1);
-    cv::Mat depth_norm(480,640,CV_16UC1);
-    cv::Mat depth_gs(480,640,CV_8UC1);
-    cv::Mat depth_bgr;
-    int rows = 480;
-    int cols = 640;
-
-    for(int i=0 ; i<1200 ; i++)
+    else if(test_image_prefix.compare("test_cam")==0)
     {
-        cv::Mat depth_hsv(480, 640, CV_8UC3, cv::Scalar(0,255,255));
-        std::string full_path = image_path + depth_prefix + std::to_string(i) + "depth.png";
+        std::cout << "testing on training_images_2 cam test set" << std::endl; 
+        realsense = true;
+        rand_ints = random.RandomVector(10000,11000,num_images,false);
+        temp_string = "test";
+        ir_image_suffix = "cam.png";
+        input_threshold = 79;
+    }
+    else
+    {
+        std::cout << "testing on training_realsense_2 test set" << std::endl; 
+        realsense = true;
+        rand_ints = random.RandomVector(1200,1500,num_images,false);   
+    }
+
+    std::cout << "Threshold value used " << std::to_string(input_threshold) << std::endl;
+
+    std::string img_path = test_image_path+temp_string;
+    std::string depth_path = test_image_path+temp_string;
+    std::string img_full_path;
+    std::string depth_full_path;
+    cv::Mat depth_image;
+    cv::Mat test_image;
+    cv::Mat test_image_pp;
+    cv::Mat depth_th(480, 640, CV_16UC1);
+
+    for(int i=0;i<num_images;i++)
+    {
+        int image_index;
+        if(realsense)
+            image_index = rand_ints[i];
+        else
+            image_index = 10000+i;
+
+        img_full_path = img_path + std::to_string(image_index) + ir_image_suffix;
+        depth_full_path = depth_path + std::to_string(image_index) + "depth.png";
         
-        depth_raw = cv::imread(full_path, -1);
-        
-        IPUtils::threshold16(depth_raw, depth_th, 1200, 65535, 4);
-        cv::normalize(depth_th, depth_norm, 0, 255, cv::NORM_MINMAX, CV_16UC1);
-        //depth_th.convertTo(depth_norm, CV_16U, 0.2125);
-        depth_norm.convertTo(depth_gs, CV_8U);
-        IPUtils::Colourize(depth_norm, depth_bgr, false);
+        test_image = cv::imread(img_full_path, -1);
+        depth_image = cv::imread(depth_full_path, -1);
 
-        IPUtils::AddKey(depth_th, depth_bgr);
-        cv::Mat test(480, 640, CV_8UC3, cv::Scalar(255,255,255));
-        IPUtils::AddKey(depth_th, test);
-        cv::imshow("key_only", test);
+        if((!depth_image.data)||(!test_image.data))
+        {
+            std::cerr << "Error loading images:\n\t" << img_full_path << "\n\t" << depth_full_path << std::endl;
+            continue;
+        }
 
-        cv::imshow("grayscale", depth_gs); 
-        cv::imshow("colour", depth_bgr);
-        cv::waitKey(0);
+        IPUtils::threshold16(depth_image, depth_th, THRESHOLD_PARAM, 65535, 4);
+        test_image_pp = IPUtils::preProcess(test_image, input_threshold);
+
+        for(int r=0;r<480;r++)
+        {
+            uint8_t* ir_pix = test_image_pp.ptr<uint8_t>(r);
+            uint16_t* depth_pix = depth_th.ptr<uint16_t>(r);
+
+            for(int c=0;c<640;c++)
+            {
+                ir_acc[depth_pix[c]] += ir_pix[c];
+                depth_count[depth_pix[c]]++;
+            }
+        }
+
     }
 
-    cv::startWindowThread();
-    cv::destroyAllWindows();
+    std::cout << "Finished, Saving data to " << OUT_PATH + test_image_prefix << std::endl;
 
-    for(int i=0;i<256;i++)
+    ofstream out_file;
+    out_file.open(OUT_PATH + test_image_prefix);
+    int temp;
+    if(out_file.is_open())
     {
-        std::cout << std::to_string(i) << "\t" << std::to_string(h_ints[i]) << std::endl;
+        for(int i=0;i<ir_acc.size();i++)
+        {
+            if(depth_count[i] != 0)
+                temp = depth_count[i];
+            else
+                temp = 1;
+
+            out_file << to_string(round((float(ir_acc[i])/temp))) << ";";
+        }
+        out_file.close();
+    }
+    else
+    {
+        std::cout << "Unable to open file" << std::endl;
     }
 
     return 0;
-
 }
 
+// Print "interactive mode" menu
 void printMenu()
 {
     std::cout << "*************************Forest training and testing*************************";
@@ -1564,12 +1682,13 @@ void printMenu()
     std::cout << "\n" << std::endl;
 }
 
+// access to some small bits of functionality, entirely for testing purposes
+// hence hardcoded paths
 void interactiveMode()
 {
     bool cont = true;
     std::string in;
     std::string forest_path = "/home/james/workspace/forest_files/";
-    //std::string forest_path = "/media/james/data_wd/training_realsense/";
     printMenu();
 
     // Poll for user input to chose program mode
@@ -1608,7 +1727,7 @@ void interactiveMode()
         }
         else if (in.compare("3") == 0)
         {
-            testColourisation();
+            std::cout << "Nothing Here" << std::endl << std::endl;
             printMenu();
         }
         else if (in.compare("4") == 0)
@@ -1713,14 +1832,6 @@ ProgramParameters getParamsFromFile(std::string& params_path)
     return return_params;
 }
 
-ProgramParameters getParamsFromFile(std::string& params_path, std::string& images_path)
-{
-    ProgramParameters return_params = getParamsFromFile(params_path);
-    return_params.setParam("TRAINING_IMAGE_PATH", images_path);
-
-    return return_params;
-}
-
 int main(int argc, char *argv[])
 {
     ProgramParameters progParams;
@@ -1746,27 +1857,21 @@ int main(int argc, char *argv[])
         }
 
     }
-    else if(argc == 4)
+    else if(argc == 5)
     {
-        std::string first_arg = argv[1];
-        std::string second_arg = argv[2];
-        std::string third_arg = argv[3];
-        if(first_arg.compare("-c") == 0)
+        std::string frst_arg = argv[1];
+        if(frst_arg.compare("-ir") == 0)
         {
-            testColourisation(second_arg, third_arg);
-        }
-        else
-        {
-            printUsage(true);
-        }
-    }
-    else if(argc == 2)
-    {
-        std::string first_arg = argv[1];
-        if(first_arg.compare("-c") == 0)
-        {
-            testColourisation();
-        }
+            std::string test_image_path = argv[2];
+            std::string test_image_prefix = argv[3];
+            int num_test_images = std::stoi(std::string(argv[4]));
+            std::cout << "Test image path: " << test_image_path << std::endl;
+            std::cout << "Test image prefix: " << test_image_prefix << std::endl;
+            std::cout << "Images to use in testing: " << std::to_string(num_test_images) << std::endl;
+            testIrLimit(test_image_path, 
+                test_image_prefix, 
+                num_test_images);
+        }    
         else
         {
             printUsage(true);

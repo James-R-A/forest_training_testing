@@ -2,14 +2,16 @@
 
 namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 {
-    // Iterares through a depth image (16 bit uint) and classifies each pixel into correct bin as 
-    // specified in the pix_to_label look-up table
-    cv::Mat createLabelMatrix(cv::Mat depth_image, std::vector<int> pix_to_label)
+    // Iterares through a depth image (16 bit uint) and classifies each pixel 
+    // into correct depth bin as specified in the pix_to_label look-up table
+    cv::Mat createLabelMatrix(cv::Mat depth_image, 
+        std::vector<int> pix_to_label)
     {
         cv::Size mat_size = depth_image.size();
         cv::Mat label_mat(mat_size, CV_8UC1);
         int max = pix_to_label.size() - 1;
-        // iterate through pixels in depth image, bin them and assign the depth label
+        // iterate through pixels in depth image, bin them and assign the depth 
+        // label
         for (int r = 0; r < mat_size.height; r++)
         {
             uint16_t* d_pixel = depth_image.ptr<uint16_t>(r);
@@ -26,6 +28,11 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         return label_mat;
     }
 
+    // Load up some images from path specified in the program parameters
+    // If it's a classifiaction forest, or a full-spread regressor, and we're 
+    // training on a zero IR input, we don't need to keep an index of all 
+    // pixel locations, they can be calculated on-the-fly. This is referred to
+    // as the "low memory" implementation in this case.
     std::unique_ptr<DataPointCollection> DataPointCollection::LoadImages(
         ProgramParameters& progParams, bool classification, int class_number)
     {
@@ -46,6 +53,10 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
         // Set up DataPointCollection object
         std::unique_ptr<DataPointCollection> result = std::unique_ptr<DataPointCollection>(new DataPointCollection());
+        
+        // the result dimension here is interpreted differently depending on
+        // the split function... it's bad design but it comes back to the 
+        // Sherwood "interfaces".
         if(progParams.SplitFunctionType == SplitFunctionDescriptor::PixelDifference)
             result->dimension_ = progParams.PatchSize * progParams.PatchSize;
         else
@@ -236,7 +247,6 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
 
         if((!result->low_memory) || (!progParams.Closeup))
         {   
-            // TODO need to deal with empty data point collections. Otherwise errors caused in training
             // Resize data and targets vector to however full they are.
             // Shrink to fit new size to free up excess memory.
             result->data_.resize(datum_no);
@@ -252,6 +262,7 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         return result;
     }
 
+    // Load up a single cv:Mat object as a DataPointCollection
     std::unique_ptr<DataPointCollection> DataPointCollection::LoadMat(cv::Mat mat_in, cv::Size img_size, bool inc_zero , bool pre_process, int pp_value)
     {
         // If the datatypes in the images are incorrect
@@ -264,8 +275,8 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         result->image_size = img_size;
         result->images_.resize(1);
         result->step = img_size.height * img_size.width;
-        // Send the ir image for preprocessing, default values used for now
         
+        // Send the ir image for preprocessing
         if(pre_process)
         {
             result->images_[0] = IPUtils::preProcess(mat_in, pp_value);

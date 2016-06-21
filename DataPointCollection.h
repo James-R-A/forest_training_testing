@@ -68,14 +68,18 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
             int class_number=-1);
 
         /// <summary>
-        /// Loads a data set from a directory of IR and depth images
-        /// Loads in a regression problem format
+        /// Loads a single cv::Mat into a DataPointCollection object for 
+        /// evaluation.
+        /// Returns a std::unique_ptr to the DataPointCollection
         /// </summary>
-        /// <param name="progParams">A program parameters object which defines 
-        ///  how the program will run, its inputs, and its outputs </param>
-        static  std::unique_ptr<DataPointCollection> LoadImagesRegression(ProgramParameters& progParams, int class_number=-1);
-
-        static std::unique_ptr<DataPointCollection> LoadMat(cv::Mat, cv::Size img_size, bool inc_zero = true, bool pre_process = true, int pp_value = 36);
+        /// <param name="mat_in"> The cv::Mat to load up </param>
+        /// <param name="img_size"> cv::Size of input image </param>
+        /// <param name="mat_in"> boolean. If true, zero input IR are included 
+        ///                       in the DataPointCollection </param>
+        /// <param name="pre_process"> if true, image is pre-processed </param>
+        /// <param name="pp_value"> Threshold value for use in pre-processing 
+        ///                  (everything below this value is set to 0) </param>
+        static std::unique_ptr<DataPointCollection> LoadMat(cv::Mat mat_in, cv::Size img_size, bool inc_zero = true, bool pre_process = true, int pp_value = 36);
 
         /// <summary>
         /// Do these data have class labels?
@@ -200,140 +204,4 @@ namespace MicrosoftResearch { namespace Cambridge { namespace Sherwood
         }
     };
 
-    // class LMDataPointCollection: public IDataPointCollection
-    // {
-    //     // If we're doing expert regression, we need all the point locations
-    //     // otherwise, this isn't used
-    //     //std::vector<int64_t> data_points_;
-
-    //     // Vector of input infrared images
-    //     std::vector<cv::Mat> images_;
-    //     // vector of depth labels
-    //     std::vector<uint8_t> labels_;
-    //     std::vector<uint16_t> targets_;
-    //     // because this weird return type is what we need for GetDataPoint()
-    //     //std::tuple<cv::Mat*, cv::Point> data_point;
-    //     // Basically number of pixels in an image
-    //     int step;
-    //     cv::Size image_size;
-    //     // Related to patch size, gets passed on to other stuff
-    //     int dimension_;
-    //     // Number of images in the DataPointCollection
-    //     int image_vec_size;
-    //     // Raw depth flag. used in classification
-    //     bool depth_raw;
-    //     // vector of pixel-to-label mapping
-    //     std::vector<int> pixelLabels_;
-    //     // Expected number of data points.
-    //     unsigned int n_data_points;
-        
-    // public:
-
-    //     static std::unique_ptr<LMDataPointCollection> LoadImagesClass(
-    //         ProgramParameters& progParams);
-
-    //     static std::unique_ptr<LMDataPointCollection> LoadImagesRegression(
-    //         ProgramParameters& progParams);
-    //     /// <summary>
-    //     /// Do these data have class labels?
-    //     /// </summary>
-    //     bool HasLabels() const
-    //     {
-    //         return labels_.size() != 0;
-    //     }
-
-    //     bool HasTargetValues() const
-    //     {
-    //         return targets_.size() != 0;
-    //     }
-
-    //     /// <summary>
-    //     /// How many unique class labels are there?
-    //     /// </summary>
-    //     /// <returns>The number of unique class labels</returns>
-    //     int CountClasses() const
-    //     {
-    //         if (!HasLabels())
-    //             throw std::runtime_error("Unlabelled data.");
-    //         return (*std::max_element(pixelLabels_.begin(), pixelLabels_.end())) + 1;
-    //     }
-
-    //     int CountImages() const
-    //     {
-    //         return image_vec_size;
-    //     }
-
-    //     /// <summary>
-    //     /// Count the data points in this collection.
-    //     /// </summary>
-    //     /// <returns>The number of data points</returns>
-    //     unsigned int Count() const
-    //     {
-    //         return n_data_points;
-    //     }
-
-    //     /// <summary>
-    //     /// Basically the patch area.
-    //     /// </summary>
-    //     int Dimensions() const
-    //     {
-    //         return dimension_;
-    //     }
-
-    //     bool DepthRaw() const
-    //     {
-    //         return depth_raw;
-    //     }
-
-
-    //     int GetStep()
-    //     {
-    //         return step;
-    //     }
-    //     /// <summary>
-    //     /// Get the specified data point.
-    //     /// </summary>
-    //     /// <param name="i">Zero-based data point index.</param>
-    //     /// <returns>Pointer to the first element of the data point.</returns>
-    //     std::tuple<const cv::Mat*,cv::Point> GetDataPoint(int i) const
-    //     {
-    //         // assuming compiler is clever enough to get quotient and remainder 
-    //         // in singe operation
-    //         int image_index = i / step;
-    //         int position_rem = i % step;
-    //         int row = position_rem / image_size.width;
-    //         int column = position_rem % image_size.width;
-                      
-    //         return std::tuple<const cv::Mat*, cv::Point>(&images_[image_index], cv::Point(column, row));
-    //     }
-
-    //     /// <summary>
-    //     /// Get the class label for the specified data point (or raise an
-    //     /// exception if these data points do not have associated labels).
-    //     /// </summary>
-    //     /// <param name="i">Zero-based data point index</param>
-    //     /// <returns>A zero-based integer class label.</returns>
-    //     int GetIntegerLabel(int i) const
-    //     {
-    //         //TODO
-    //         if (!HasLabels())
-    //             throw std::runtime_error("Data have no associated class labels.");
-
-    //         return (int)labels_[i]; // may throw an exception if index is out of range
-    //     }
-        
-    //     /// <summary>
-    //     /// Get the target value for the specified data point (or raise an
-    //     /// exception if these data points do not have associated target values).
-    //     /// </summary>
-    //     /// <param name="i">Zero-based data point index.</param>
-    //     /// <returns>The target value.</returns>
-    //     float GetTarget(int i) const
-    //     {
-    //         if (!HasTargetValues())
-    //             throw std::runtime_error("Data have no associated target values.");
-
-    //         return float(targets_[i]); // may throw an exception if index is out of range
-    //     }
-    //};
 }   }   }

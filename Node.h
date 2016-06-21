@@ -1,6 +1,9 @@
 #pragma once
 #include <iostream>
 #include "Serialize.h"
+
+// Microsoft Research Sherwood File
+
 // This file defines the Node data structure, which is used to represent one node
 // in a DecisionTree.
 
