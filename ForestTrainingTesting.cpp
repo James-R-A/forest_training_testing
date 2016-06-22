@@ -3,8 +3,7 @@ This file contains main() and other top-level functions
 
     As a general precursor to all the code in this project: the closer it got to the 
     deadline of the project, the worse the code got. 
-    It became messier, less well documented, and generally poorer.
-
+    
     James Andrew
     jamesrobertandrew1993@gmail.com
 */
@@ -43,11 +42,12 @@ const std::string FILE_PATH = "D:\\";
 const std::string FILE_PATH = "/media/james/data_wd/";
 #endif
 
-// Trains a classification forest using the multi-threaded training algorithm
-// INPUTS: ProgramParameters& a reference to a program parameters object
-// OUTPUTS: None
-// NOTES: saves a classification forest to the forest output path as specified in 
-//        function input object.
+///<summary> Trains a classification forest using the multi-threaded training 
+/// algorithm. Saves a classification forest to the forest output path as 
+/// specified in function input object. </summary>
+///<param name="progParams"> A reference to a program parameters object 
+/// which contains information about the input images, forest parameters
+/// and output path and naming </param>
 int trainClassificationPar(ProgramParameters& progParams)
 {
     // Ensure the path to the training images ends in a /
@@ -85,14 +85,15 @@ int trainClassificationPar(ProgramParameters& progParams)
     return 0;
 }
 
-// Trains a regression forest using the multi-threaded training algorithm
-// INPUTS: ProgramParameters& a reference to a program parameters object
-//         class_expert_no. Integer representing the class number to which 
-//         an "expert" forest belongs. If -1, it is a standalone forest
-//         note, this is only used in the naming of the output file
-// OUTPUTS: None
-// NOTES: saves a regression forest to the forest output path as specified in 
-//        function input object.
+///<summary> Trains a regression forest using the multi-threaded training 
+/// algorithm. Saves a regression forest to the forest output path as 
+/// specified in function input object. </summary>
+///<param name="progParams"> A reference to a program parameters object 
+/// which contains information about the input images, forest parameters
+/// and output path and naming </param>
+///<param name="class_expert_no">If we're training an expert regressor, this
+/// is the integer class label for the expert. If -1, it's a general regressor
+/// </param>
 int trainRegressionPar(ProgramParameters& progParams, int class_expert_no = -1)
 {
     std::string file_suffix;
@@ -139,8 +140,13 @@ int trainRegressionPar(ProgramParameters& progParams, int class_expert_no = -1)
     return 0;
 }
 
-// Train a classification forest with the random hyperplane split function. As above but using
-// RandomHyperplaneFeatureResponse instead of PixelDifferenceFeatureResponse
+///<summary> Trains a classification forest using the multi-threaded training 
+/// algorithm using the RandomHyperplane split-function. 
+/// Saves a classification forest to the forest output path as specified in 
+/// function input object. </summary>
+///<param name="progParams"> A reference to a program parameters object 
+/// which contains information about the input images, forest parameters
+/// and output path and naming </param>
 int trainClassificationRH(ProgramParameters& progParams)
 {
     if(progParams.TrainingImagesPath.back() != '/')
@@ -177,8 +183,16 @@ int trainClassificationRH(ProgramParameters& progParams)
     return 0;
 }
 
-// Train a regression forest with the random hyperplane split function. As above but using
-// RandomHyperplaneFeatureResponse instead of PixelDifferenceFeatureResponse
+///<summary> Trains a regression forest using the multi-threaded training 
+/// algorithm using the RandomHyperplane split-function. 
+/// Saves a regression forest to the forest output path as specified in 
+/// function input object. </summary>
+///<param name="progParams"> A reference to a program parameters object 
+/// which contains information about the input images, forest parameters
+/// and output path and naming </param>
+///<param name="class_expert_no">If we're training an expert regressor, this
+/// is the integer class label for the expert. If -1, it's a general regressor
+/// </param>
 int trainRegressionRH(ProgramParameters& progParams, int class_expert_no = -1)
 {
     std::string file_suffix;
@@ -225,7 +239,7 @@ int trainRegressionRH(ProgramParameters& progParams, int class_expert_no = -1)
     return 0;
 }
 
-// Get and display output from regression forest
+// Get and display output from regression forest. Used only for testing.
 // This is old, probably doesn't work anymore due to things being hardcoded
 int regressOnline(std::string dir_path)
 {
@@ -266,11 +280,15 @@ int regressOnline(std::string dir_path)
         if (!test_image.data)
             continue;
 
+        // Create a DataPointCollection from a single input image
         std::unique_ptr<DataPointCollection> test_data1 = DataPointCollection::LoadMat(test_image, cv::Size(640, 480));
         reg_result = Regressor<PixelSubtractionResponse>::ApplyMat(*forest_shared, *test_data1);
 
+        // reform vector of results into cv::Mat of results
         reg_mat = cv::Mat(480, 640, CV_16UC1, (uint16_t*)reg_result.data());
+        // Threshold out outputs >= 1201 mm (max range)
         IPUtils::threshold16(reg_mat, result_thresh, 1201, 65535, 4);
+        // Multiply all by 54 to scale 1200 to ~65535
         result_thresh.convertTo(result_thresh, CV_16U, 54);
         cv::imshow("output", result_thresh);
         int64 process_time = (((cv::getTickCount() - start_time) / cv::getTickFrequency()) * 1000);
@@ -284,14 +302,26 @@ int regressOnline(std::string dir_path)
     return 0;
 }
 
-// Get and display output from classification forest
-// This is old, probably doesn't work anymore due to things being hardcoded
+///<summary>Loads a classification forest, then applies a number of images to 
+/// the classification forest for evaluation. Test image pixels are discretised 
+/// into depth classes using the classification forest, and the resulting images
+/// are saved to a hardcoded output path (OUT_PATH) 
+/// NOTE, for ease at the time, the test functions pick test images differently
+/// based on the test_image_prefix parameter </summary>
+///<param name="forest_path">Path to directory containing forest file</param>
+///<param name="forest_prefix">eg for test_forest_classifier.frst, 
+///  prefix = test_forest </param>
+///<param name="test_image_path">path to directory of test images</param>
+///<param name="test_image_prefix">eg for images names as img125ir.png and 
+/// img125depth.png, prefix=img</param>
+///<param name="num_images">integer number of test images to ecaluate</param>
 int classifyOnline(std::string forest_path,
     std::string forest_prefix,
     std::string test_image_path,
     std::string test_image_prefix,
     int num_images = 0)
 {
+    // Dir checks
     if(!IPUtils::dirExists(forest_path))
         throw std::runtime_error("Failed to find forest directory:" + forest_path);
 
@@ -338,13 +368,6 @@ int classifyOnline(std::string forest_path,
 
     std::string img_path = test_image_path+test_image_prefix;
     std::string img_full_path;
-    std::vector<int32_t> gt_error(THRESHOLD_PARAM, 0);
-    std::vector<int32_t> gt_inc(THRESHOLD_PARAM, 0);
-    cv::Mat depth_image(480, 640, CV_16UC1);
-    cv::Mat result_thresh(480, 640, CV_16UC1);
-    cv::Mat depth_thresh(480, 640, CV_16UC1);
-    cv::Mat temp_mat(480, 640, CV_16UC1);
-    int images_processed = 0;
     bool realsense = false;
 
     int threshold_value = 38;
@@ -410,8 +433,6 @@ int classifyOnline(std::string forest_path,
             std::iota(rand_ints.begin(), rand_ints.end(), 1200);
         }
     }
-    
-    
     
     std::string ir_image_suffix = "ir.png";
     if(forest_prefix.find("cam") != std::string::npos)
