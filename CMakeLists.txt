@@ -19,6 +19,8 @@ use_cxx11()
 
 # if on the noisycat machine, this is where OPENCV is installed
 # super hacky way of detecting what machine we're on
+# In any case, if opencv isn't automatically detected, it needs setting to point
+# to the directory containing OpenCVConfig.cmake OpenCVModules.cmake etc...
 if(${CMAKE_CURRENT_SOURCE_DIR} MATCHES "/home/jamesa/+")
     SET(OpenCV_DIR "/home/miko/opencv3/lib/share/OpenCV/")
 endif()

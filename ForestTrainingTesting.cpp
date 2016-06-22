@@ -1,8 +1,11 @@
 /*
-This file contains main() and other top-level functions
+This file contains main() and other top-level functions, like testing and 
+training.
 
-    As a general precursor to all the code in this project: the closer it got to the 
-    deadline of the project, the worse the code got. 
+    As a general precursor to all the code in this project: the closer it got to
+    the deadline of the project, the worse the code got. 
+    There's a few functions in this file which do very similar things, which 
+    could easily be rolled into one given a little more program control.
     
     James Andrew
     jamesrobertandrew1993@gmail.com
@@ -372,6 +375,8 @@ int classifyOnline(std::string forest_path,
 
     int threshold_value = 38;
     size_t t_pos = forest_prefix.find("T");
+    // Hacky way to pull threshold value out of forest prefix
+    // if there's a 'T' in it, the threshold value follows it
     if(t_pos != std::string::npos)
     {
         threshold_value = std::stoi(forest_prefix.substr(t_pos+1, t_pos+2));
@@ -472,6 +477,7 @@ int classifyOnline(std::string forest_path,
 
         int output_index = 0;
         cv::Mat result_mat = cv::Mat::zeros(480, 640, CV_8UC1);
+        // iterate through image, and slot in ouputs for all non-zero inputs
         for(int r=0;r<480;r++)
         {
             uchar* test_image_pix = test_image.ptr<uchar>(r);
@@ -492,17 +498,13 @@ int classifyOnline(std::string forest_path,
         }
 
         result_mat.convertTo(result_norm1, CV_8U, 63);
-        //cv::imshow("output", result_norm1);
         cv::Mat colourized;
-        //cv::applyColorMap(result_mat, colourized, cv::COLORMAP_JET);
         cv::applyColorMap(result_norm1, colourized, cv::COLORMAP_JET);
         cv::imshow("output", colourized);
+
         int blah = cv::waitKey(100);
-        //if(blah == 115)
-        //{
         cv::imwrite(savepath+"gs"+std::to_string(rand_ints[i])+".png", result_norm1);
         cv::imwrite(savepath+"Colour"+std::to_string(rand_ints[i])+".png", colourized);
-        //}
         if(blah == 113)
         {
             break;
@@ -514,6 +516,8 @@ int classifyOnline(std::string forest_path,
     return 0;
 }
 
+// This is a pretty old function, used in early testing. Probably doesn't work 
+// anymore. Uses hard-coded paths.
 int applyMultiLevel(std::string forest_path)
 {
     if(forest_path.back() != '/')
@@ -637,6 +641,23 @@ int applyMultiLevel(std::string forest_path)
     
 }
 
+///<summary>Loads a set of multi-layer forests, then applies a number of images
+/// to the forests for evaluation. Image pixels are classified into depth bins,
+/// which are used to form weightings, then used in a weighted sum of all expert
+/// regression forest outputs. THe "Alternate" part refers to the fact that this
+/// application does not use zero input IR values in estimation of depth.
+/// This function prints mean and standard deviation of per-pixel depth error
+/// and processing time information to cout.
+/// Also creates a file containing average depth vs depth error
+/// NOTE, for ease at the time, the test functions pick test images differently
+/// based on the test_image_prefix parameter </summary>
+///<param name="forest_path">Path to directory containing forest file</param>
+///<param name="forest_prefix">eg for test_forest_classifier.frst, 
+///  prefix = test_forest </param>
+///<param name="test_image_path">path to directory of test images</param>
+///<param name="test_image_prefix">eg for images names as img125ir.png and 
+/// img125depth.png, prefix=img</param>
+///<param name="num_images">integer number of test images to ecaluate</param>
 int testForestAlternate(std::string forest_path,
     std::string forest_prefix,
     std::string test_image_path,
@@ -710,9 +731,11 @@ int testForestAlternate(std::string forest_path,
     std::string img_full_path;
     std::string depth_path = test_image_path+test_image_prefix;
     std::string depth_full_path;
+    // steady state error, error, mean sse - thresholded
     cv::Mat sse_t = cv::Mat::zeros(480, 640, CV_32SC1);
     cv::Mat err_t = cv::Mat::zeros(480, 640, CV_32SC1);
     cv::Mat msse_t(480, 640, CV_32SC1);
+    // steady state error, error, mean sse - not thresholded
     cv::Mat sse_nt = cv::Mat::zeros(480, 640, CV_32SC1);
     cv::Mat err_nt = cv::Mat::zeros(480, 640, CV_32SC1);
     std::vector<int32_t> gt_error(THRESHOLD_PARAM, 0);
@@ -730,6 +753,7 @@ int testForestAlternate(std::string forest_path,
     int images_processed = 0;
     bool realsense = false;
 
+    // hacky way to extract desired threshold value from forest prefix
     int threshold_value = 36;
     size_t t_pos = forest_prefix.find("T");
     if(t_pos != std::string::npos)
@@ -900,6 +924,7 @@ int testForestAlternate(std::string forest_path,
     std::cout << "\nAverage per-frame process time: " << std::to_string(avg_process_time) << " ms" << std::endl;
     std::cout << "\nAverage framerate: " << std::to_string(1000/avg_process_time) << " Hz" << std::endl;
 
+    // Create file of depth vs depth error
     ofstream out_file;
     out_file.open(OUT_PATH + forest_prefix + test_image_prefix);
     int temp;
@@ -923,6 +948,24 @@ int testForestAlternate(std::string forest_path,
 
 }
 
+///<summary>Loads a set of multi-layer forests, then applies a number of images
+/// to the forests for evaluation. Image pixels are classified into depth bins,
+/// which are used to form weightings, then used in a weighted sum of all expert
+/// regression forest outputs. THe "Alternate" part refers to the fact that this
+/// application does not use zero input IR values in estimation of depth.
+/// This function prints mean and standard deviation of per-pixel depth error
+/// and processing time information to cout.
+/// Also creates a file containing average depth vs depth error
+/// NOTE, for ease at the time, the test functions pick test images differently
+/// based on the test_image_prefix parameter 
+/// *** AS ABOVE BUT WITH RandomHyperplane split function *** </summary>
+///<param name="forest_path">Path to directory containing forest file</param>
+///<param name="forest_prefix">eg for test_forest_classifier.frst, 
+///  prefix = test_forest </param>
+///<param name="test_image_path">path to directory of test images</param>
+///<param name="test_image_prefix">eg for images names as img125ir.png and 
+/// img125depth.png, prefix=img</param>
+///<param name="num_images">integer number of test images to ecaluate</param>
 int testForestAlternateRH(std::string forest_path,
     std::string forest_prefix,
     std::string test_image_path,
@@ -1187,6 +1230,22 @@ int testForestAlternateRH(std::string forest_path,
     }
 }
 
+///<summary>Loads a set of multi-layer forests, then applies a number of images
+/// to the forests for evaluation. Image pixels are classified into depth bins,
+/// which are used to form weightings, then used in a weighted sum of all expert
+/// regression forest outputs.
+/// This function prints mean and standard deviation of per-pixel depth error
+/// and processing time information to cout.
+/// Also creates a file containing average depth vs depth error
+/// NOTE, for ease at the time, the test functions pick test images differently
+/// based on the test_image_prefix parameter </summary>
+///<param name="forest_path">Path to directory containing forest file</param>
+///<param name="forest_prefix">eg for test_forest_classifier.frst, 
+///  prefix = test_forest </param>
+///<param name="test_image_path">path to directory of test images</param>
+///<param name="test_image_prefix">eg for images names as img125ir.png and 
+/// img125depth.png, prefix=img</param>
+///<param name="num_images">integer number of test images to ecaluate</param>
 int testForest(std::string forest_path,
     std::string forest_prefix,
     std::string test_image_path,
@@ -1398,6 +1457,7 @@ int testForest(std::string forest_path,
     std::cout << "\nAverage per-frame process time: " << std::to_string(avg_process_time) << " ms" << std::endl;
     std::cout << "\nAverage framerate: " << std::to_string(1000/avg_process_time) << " Hz" << std::endl;
 
+    // output file of mean depth error (mm) against depth (mm)
     ofstream out_file;
     out_file.open(OUT_PATH + forest_prefix + test_image_prefix);
     int temp;
@@ -1418,10 +1478,12 @@ int testForest(std::string forest_path,
     {
         std::cout << "Unable to open file" << std::endl;
     }
-
     
 }
 
+// Output a file for a dataset with a histogram of "beth threshold values"
+// Useful for chosing or identifying an ideal threshold value
+// Hardcoded paths
 void testFunction()
 {
     Random random;
@@ -1490,6 +1552,7 @@ void testFunction()
 
 }
 
+// Redirect to correct forest training functions based on program parameters
 int growSomeForests(ProgramParameters& progParams)
 {
     bool rh = (progParams.SplitFunctionType == SplitFunctionDescriptor::RandomHyperplane);
@@ -1565,7 +1628,8 @@ int growSomeForests(ProgramParameters& progParams)
     return -1;
 }
 
-
+// Outputs a file of ir intensity value vs ground-truth depth for a set of
+// images. Choses image indices differently based on test image prefix
 int testIrLimit(std::string test_image_path,
     std::string test_image_prefix,
     int num_images)
@@ -1782,6 +1846,9 @@ void printUsage(bool incorrect=false)
     std::cout << std::endl << "To use interactively, pass no cla's" << std::endl;
 }
 
+// Parses a program parameters file.
+// INPUT: params_path - path to the .params file
+// OUTPUT: ProgramParameters object containing all relevent processing info
 ProgramParameters getParamsFromFile(std::string& params_path)
 {
     ProgramParameters return_params;
@@ -1816,6 +1883,7 @@ ProgramParameters getParamsFromFile(std::string& params_path)
     int num_categories = 25;
     try
     {
+        // Open the .params file
         ifstream params_file(params_path);
         if(params_file.is_open())
         {
@@ -1855,6 +1923,8 @@ ProgramParameters getParamsFromFile(std::string& params_path)
 
 int main(int argc, char *argv[])
 {
+    // Parse input parameters
+    
     ProgramParameters progParams;
     if( argc < 2 )
     {

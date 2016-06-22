@@ -2,40 +2,74 @@ FOREST PARAMETERS FILE
 #this is a comment, the # needs to be
 # right at the start of the line because I'm lazy
 TRAINING_IMAGE_PATH:
-/home/jamesa/workspace/training_images
+/path/to/training/images
+# number of training images
 TRAINING_IMAGES:
 10
+# index of start of training images
 IMAGES_START:
 0
+#number of depth classes
 DEPTH_BINS:
 5
+# Side length of square region-of-interest around a pixel
 PATCH_SIZE:
 25
+# YES if depth pixel values in mm 
 DEPTH_RAW:
 NO
+# Forest type, CLASS, REG, ALL, EXPREG
 TYPE:
 CLASS
+# Number of trees per forest
 TREES:
 1
+# Depth of classification trees
 CLASS_LEVELS:
 22
+#Depth of regression trees
 REG_LEVELS:
 20
+#number of feature response functions evaluated per node
 CANDIDATE_FEATURES:
 10
+#thresholds evaluated per node
 THRESHOLDS_PER_FEATURE:
 10
 VERBOSE:
 NO
+#expert forest class number
+#EXPERT:
+#0
+# PIXEL_DIFFERENCE or RANDOM_HYPERPLANE
 SPLIT_FUNCTION:
 PIXEL_DIFFERENCE
+# Forest output path and prefix
 FOREST_OUTPUT:
-first_nc
+forest/path/prefix
+# training image prefix
 INPUT_PREFIX:
-test
+image
 IMG_WIDTH:
 640
 IMG_HEIGHT:
 480
+#Maximum number of available processing threads
 MAX_THREADS:
 7
+#Include zero IR input pixels in tree training (NO is better)
+TRAIN_ON_ZERO_IR:
+NO
+#maximum depth value
+MAX_RANGE:
+1000
+#Threshold value for pre-processing
+TH_VALUE:
+39
+# Input images from modified webcam or IR camera?
+#WEBCAM:
+#YES
+#Ignore close-up ground-truth values in training
+#IGNORE_CLOSE:
+#NO
+
